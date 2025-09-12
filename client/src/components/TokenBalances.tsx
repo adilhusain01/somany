@@ -125,7 +125,7 @@ const TokenBalances: React.FC = () => {
                     <Sparkles className="w-6 h-6 text-white" />
                   </div>
                   <h3 className="text-lg font-bold text-black mb-2">Dust Aggregation</h3>
-                  <p className="text-gray-600 text-sm leading-relaxed">Convert small balances into wETH on Sonic</p>
+                  <p className="text-gray-600 text-sm leading-relaxed">Convert small balances into wETH on Somnia</p>
                 </div>
               </motion.div>
 

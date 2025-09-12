@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Architecture Overview
 
-SoMany is a multi-chain dust aggregation protocol that converts scattered dust tokens across multiple blockchain networks into wETH on the Sonic blockchain. The project consists of three main components:
+SoMany is a multi-chain dust aggregation protocol that converts scattered dust tokens across multiple blockchain networks into wETH on the Somnia blockchain. The project consists of three main components:
 
 ### Client (Next.js Frontend)
 - **Location**: `client/`

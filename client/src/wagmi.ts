@@ -87,7 +87,7 @@ const unichainSepolia: Chain = {
 
 export const config = getDefaultConfig({
   appName: 'SoMany Wallet Balance',
-  projectId: 'YOUR_PROJECT_ID',
+  projectId: 'f1da6f81f251c9456f52f9d31e44a968',
   chains: [
     // Mainnets
     // mainnet,

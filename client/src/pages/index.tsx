@@ -17,7 +17,7 @@ const Home: NextPage = () => {
       <Head>
         <title>SoMany - Multi-Chain Token Aggregation Protocol</title>
         <meta
-          content="Aggregate ETH across multiple blockchain networks into wETH on Sonic"
+          content="Aggregate ETH across multiple blockchain networks into wETH on Somnia"
           name="description"
         />
         <link href="/favicon.ico" rel="icon" />
@@ -89,7 +89,7 @@ const Home: NextPage = () => {
                 <span className="font-semibold text-foreground">multiple blockchain networks</span>{' '}
                 through our intelligent funnel system. Transform countless small balances into concentrated{' '}
                 <span className="font-semibold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-                  wETH on Sonic
+                  wETH on Somnia
                 </span>{' '}
                 with seamless multi-chain aggregation.
               </motion.p>

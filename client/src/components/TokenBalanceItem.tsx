@@ -33,11 +33,11 @@ const TokenBalanceItem: React.FC<TokenBalanceItemProps> = ({ balance, isDust, it
   const TELEPORT_CONFIGS = {
     11155111: { // Ethereum Sepolia
       name: "Ethereum Sepolia",
-      lockContract: "0x1231A2cf8D00167BB108498B81ee37a05Df4e12F"
+      lockContract: "0x1227Fa26acd6cDb75E7764C8bfFcB47E26fB63f4"
     },
     84532: { // Base Sepolia
       name: "Base Sepolia", 
-      lockContract: "0x983e5918fa2335a004f28E7901aBDd3f2C2324dF"
+      lockContract: "0xaBd2429cf7BD4F25d0d99FF2057Ef9FDbc1c64F4"
     }
   };
   

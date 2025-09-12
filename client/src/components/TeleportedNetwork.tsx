@@ -36,23 +36,23 @@ const TeleportedNetwork: React.FC<TeleportedNetworkProps> = ({ className }) => {
   const { setTeleportedAssetsValue, teleportRefreshTrigger } = useTokenStore();
   
   // Network constants
-  const SONIC_CHAIN_ID = 14601;
-  const SONIC_RPC_URL = 'https://rpc.testnet.soniclabs.com';
-  const SONIC_NETWORK_NAME = 'Sonic Testnet';
-  const WETH_TOKEN_ADDRESS = '0xB5A3BA529840fE3bB07526688Aaa100F497C5d97';
+  const SOMNIA_CHAIN_ID = 50312;
+  const SOMNIA_RPC_URL = 'https://dream-rpc.somnia.network';
+  const SOMNIA_NETWORK_NAME = 'Somnia Testnet';
+  const WETH_TOKEN_ADDRESS = '0x5c6B165a8Ba1595b2F28BEd9D9Dcd150D7096d47';
   
   // Support multiple source chains for locked ETH
   const LOCK_CHAIN_CONFIGS = {
     11155111: { // Ethereum Sepolia
       name: "Ethereum Sepolia",
       rpcUrl: 'https://api.zan.top/node/v1/eth/sepolia/692596371a21412d8ceafa0e21955bab',
-      lockAddress: '0x1231A2cf8D00167BB108498B81ee37a05Df4e12F',
+      lockAddress: '0x1227Fa26acd6cDb75E7764C8bfFcB47E26fB63f4',
       explorerUrl: 'https://sepolia.etherscan.io'
     },
     84532: { // Base Sepolia
       name: "Base Sepolia",
       rpcUrl: 'https://api.zan.top/node/v1/base/sepolia/692596371a21412d8ceafa0e21955bab',
-      lockAddress: '0x983e5918fa2335a004f28E7901aBDd3f2C2324dF',
+      lockAddress: '0xaBd2429cf7BD4F25d0d99FF2057Ef9FDbc1c64F4',
       explorerUrl: 'https://base-sepolia.blockscout.com'
     }
   };
@@ -79,16 +79,16 @@ const TeleportedNetwork: React.FC<TeleportedNetworkProps> = ({ className }) => {
     setError(null);
     
     try {
-      // Create Sonic client for wETH balance
-      const sonicClient = createPublicClient({
+      // Create Somnia client for wETH balance
+      const somniaClient = createPublicClient({
         chain: {
-          id: SONIC_CHAIN_ID,
-          name: SONIC_NETWORK_NAME,
-          network: 'sonic',
+          id: SOMNIA_CHAIN_ID,
+          name: SOMNIA_NETWORK_NAME,
+          network: 'somnia',
           nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
           rpcUrls: {
-            default: { http: [SONIC_RPC_URL] },
-            public: { http: [SONIC_RPC_URL] },
+            default: { http: [SOMNIA_RPC_URL] },
+            public: { http: [SOMNIA_RPC_URL] },
           },
         },
         transport: http()
@@ -115,8 +115,8 @@ const TeleportedNetwork: React.FC<TeleportedNetworkProps> = ({ className }) => {
         });
       }
       
-      // Fetch wETH balance on Sonic
-      const wethBalanceRaw = await sonicClient.readContract({
+      // Fetch wETH balance on Somnia
+      const wethBalanceRaw = await somniaClient.readContract({
         address: WETH_TOKEN_ADDRESS as `0x${string}`,
         abi: erc20Abi,
         functionName: 'balanceOf',
@@ -264,17 +264,17 @@ const TeleportedNetwork: React.FC<TeleportedNetworkProps> = ({ className }) => {
                   <div className="flex items-center gap-4">
                     <div className="h-16 w-16 rounded-full border-2 border-gray-200 overflow-hidden">
                       <img 
-                        src="https://icons.llamao.fi/icons/chains/rsz_sonic.jpg" 
-                        alt="Sonic Network"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=Sonic&background=random&color=fff&size=128`;
+                        src="https://icons.llamao.fi/icons/chains/rsz_somnia?w=48&h=48" 
+                        alt="Somnia Network"
+                        onError={(e) => { 
+                          (e.target as HTMLImageElement).src = `https://icons.llamao.fi/icons/chains/rsz_somnia?w=48&h=48`;
                         }}
                         className="h-full w-full object-cover"
                       />
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold">Sonic Testnet</h3>
-                      <p className="text-sm text-muted-foreground">Network ID: {SONIC_CHAIN_ID}</p>
+                      <h3 className="text-lg font-bold">Somnia Testnet</h3>
+                      <p className="text-sm text-muted-foreground">Network ID: {SOMNIA_CHAIN_ID}</p>
                       <div className="mt-2 flex gap-2">
                         <Badge variant="secondary" className="text-xs">Testnet</Badge>
                         <Badge variant="outline" className="text-xs">Active</Badge>
@@ -317,7 +317,7 @@ const TeleportedNetwork: React.FC<TeleportedNetworkProps> = ({ className }) => {
                     
                     <div className="mt-4 text-xs text-foreground">
                       <a 
-                        href={`https://testnet.sonicscan.org/token/${WETH_TOKEN_ADDRESS}`}
+                        href={`https://shannon-explorer.somnia.network/address/${WETH_TOKEN_ADDRESS}?tab=txs`}
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="flex items-center gap-1 hover:underline"
@@ -399,7 +399,7 @@ const TeleportedNetwork: React.FC<TeleportedNetworkProps> = ({ className }) => {
                         return (
                           <a 
                             key={chainId}
-                            href={`${config.explorerUrl}/address/${config.lockAddress}`}
+                            href={`${config.explorerUrl}/address/${config.lockAddress}?tab=txs`}
                             target="_blank" 
                             rel="noopener noreferrer"
                             className={`flex items-center gap-1 hover:underline ${hasError ? 'text-red-500' : ''}`}
