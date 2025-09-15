@@ -13,6 +13,7 @@ import { ETHTeleportSection } from './ETHTeleportSection';
 const TokenBalances: React.FC = () => {
   const { isConnected } = useAccount();
   const { data: balances, isLoading, error } = useTokenBalances();
+  const [portfolioValue, setPortfolioValue] = React.useState<number>(0);
   
   const { 
     setBalances, 
@@ -203,7 +204,7 @@ const TokenBalances: React.FC = () => {
                     {isLoading ? (
                       <Skeleton className="h-12 w-40 mx-auto" />
                     ) : (
-                      formatCurrency(totalPortfolioValue)
+                      formatCurrency(portfolioValue)
                     )}
                   </div>
                 </div>
@@ -238,6 +239,7 @@ const TokenBalances: React.FC = () => {
         <ETHTeleportSection 
           balances={balances}
           itemVariants={itemVariants}
+          onPortfolioValueCalculated={setPortfolioValue}
         />
       )}
       

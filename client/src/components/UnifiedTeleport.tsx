@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { parseEther } from 'viem';
 import { useAccount, useChainId, useWriteContract, useSwitchChain } from 'wagmi';
-import { sepolia, baseSepolia } from 'wagmi/chains';
 import { Zap, Check, Clock, AlertCircle, ChevronRight, Loader2 } from 'lucide-react';
 import NetworkIcon from './NetworkIcon';
 import { Button } from './ui/button';
@@ -32,24 +31,24 @@ const TELEPORT_CONFIGS = {
     enabled: true,
   },
   
-  // Future supported chains (coming soon)
+  // Newly enabled chains
   11155420: { // Optimism Sepolia
     name: "Optimism Sepolia",
     symbol: "ETH", 
-    lockContract: null,
-    enabled: false,
+    lockContract: "0x38B0C35Ab49894AC954B137b415Eb256cEC640Df",
+    enabled: true,
   },
   421614: { // Arbitrum Sepolia
     name: "Arbitrum Sepolia",
     symbol: "ETH",
-    lockContract: null,
-    enabled: false,
+    lockContract: "0x637C22367AABD4EC23f7cc3024954cA97A35A6C2",
+    enabled: true,
   },
   300: { // zkSync Sepolia
     name: "zkSync Sepolia",
     symbol: "ETH",
-    lockContract: null,
-    enabled: false,
+    lockContract: "0x637C22367AABD4EC23f7cc3024954cA97A35A6C2",
+    enabled: true,
   },
   80002: { // Polygon Amoy
     name: "Polygon Amoy",
@@ -60,8 +59,8 @@ const TELEPORT_CONFIGS = {
   534351: { // Scroll Sepolia
     name: "Scroll Sepolia",
     symbol: "ETH",
-    lockContract: null,
-    enabled: false,
+    lockContract: "0x637C22367AABD4EC23f7cc3024954cA97A35A6C2",
+    enabled: true,
   },
   10143: { // Monad Testnet
     name: "Monad Testnet",
@@ -72,8 +71,8 @@ const TELEPORT_CONFIGS = {
   1301: { // Unichain Sepolia
     name: "Unichain Sepolia",
     symbol: "ETH",
-    lockContract: null,
-    enabled: false,
+    lockContract: "0x637C22367AABD4EC23f7cc3024954cA97A35A6C2",
+    enabled: true,
   }
 };
 
@@ -252,13 +251,11 @@ export const UnifiedTeleport: React.FC<UnifiedTeleportProps> = ({
 
         // Switch to target chain if needed
         if (executionChainIdRef.current !== chainId) {
-          // Get the proper chain object from wagmi
-          const targetChain = chainId === 11155111 ? sepolia : baseSepolia;
-          console.log(`Switching from chain ${executionChainIdRef.current} to ${targetChain.id} (${targetChain.name})`);
+          console.log(`Switching to chain with ID: ${chainId} (${config.name})`);
           
-          await switchChainAsync({ chainId: targetChain.id });
+          await switchChainAsync({ chainId });
           // Update our execution chain ref (no re-render)
-          executionChainIdRef.current = targetChain.id;
+          executionChainIdRef.current = chainId;
           // Wait for the switch to complete
           await new Promise(resolve => setTimeout(resolve, 2000));
           
@@ -393,6 +390,14 @@ export const UnifiedTeleport: React.FC<UnifiedTeleportProps> = ({
                             isDisabled ? 'text-muted-foreground' : 'text-foreground'
                           }`}>
                             {parseFloat(balance) > 0 ? formatTokenAmount(balance) : '0'} {config.symbol}
+                          </span>
+                        </p>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          <span>Value:</span>
+                          <span className={`font-medium ${
+                            isDisabled ? 'text-muted-foreground' : 'text-foreground'
+                          }`}>
+                            {parseFloat(balance) > 0 ? formatCurrency(parseFloat(balance) * price) : '$0'}
                           </span>
                         </p>
                       </div>

@@ -6,11 +6,19 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatCurrency(value: number, currency = 'USD'): string {
+  // Handle potential NaN or invalid values
+  if (isNaN(value) || value === undefined) {
+    return '$0.00';
+  }
+  
+  // For very small values, show with more precision
+  const fractionDigits = value < 0.01 ? 6 : 2;
+  
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,
     minimumFractionDigits: 2,
-    maximumFractionDigits: 6,
+    maximumFractionDigits: fractionDigits,
   }).format(value)
 }
 
@@ -54,14 +62,14 @@ export function getChainIconUrl(chainId: number): string {
     
     // Testnets
     11155111: 'https://icons.llamao.fi/icons/chains/rsz_ethereum.jpg', // Sepolia
-    420: 'https://icons.llamao.fi/icons/chains/rsz_optimism.jpg', // Optimism Goerli
+    11155420: 'https://icons.llamao.fi/icons/chains/rsz_optimism.jpg', // Optimism Sepolia
     421614: 'https://icons.llamao.fi/icons/chains/rsz_arbitrum.jpg', // Arbitrum Sepolia
     80001: 'https://icons.llamao.fi/icons/chains/rsz_polygon.jpg', // Mumbai
     84532: 'https://icons.llamao.fi/icons/chains/rsz_base.jpg', // Base Sepolia
-    300: 'https://icons.llamao.fi/icons/chains/rsz_zksync_era.jpg', // zkSync
-    534351: 'https://icons.llamao.fi/icons/chains/rsz_scroll.jpg', // Scroll
-    10143: 'https://chainlist.org/unknown-chain.png', // Monad
-    1301: 'https://chainlist.org/unknown-chain.png', // Unichain
+    300: 'https://icons.llamao.fi/icons/chains/rsz_zksync%20era.jpg', // zkSync Era Sepolia
+    534351: 'https://icons.llamao.fi/icons/chains/rsz_scroll.jpg', // Scroll Sepolia
+    10143: 'https://cdn.prod.website-files.com/667c57e6f9254a4b6d914440/66c3711574e166ac115bba8a_Logo%20Mark.svg', // Monad
+    1301: 'https://icons.llamao.fi/icons/chains/rsz_unichain.jpg', // Unichain Sepolia
   }
   
   return chainIcons[chainId] || 'https://chainlist.org/unknown-chain.png'

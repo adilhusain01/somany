@@ -21,12 +21,43 @@ const TELEPORT_CONFIGS = {
     symbol: "ETH",
     lockContract: "0xaBd2429cf7BD4F25d0d99FF2057Ef9FDbc1c64F4",
     explorerUrl: "https://base-sepolia.blockscout.com"
+  },
+  300: { // ZkSync Era Sepolia
+    name: "ZkSync Era Sepolia",
+    symbol: "ETH",
+    lockContract: "0x637C22367AABD4EC23f7cc3024954cA97A35A6C2",
+    explorerUrl: "https://sepolia.explorer.zksync.io"
+  },
+  1301: { // Unichain Sepolia
+    name: "Unichain Sepolia",
+    symbol: "ETH",
+    lockContract: "0x637C22367AABD4EC23f7cc3024954cA97A35A6C2",
+    explorerUrl: "https://uniscan.io/sepolia"
+  },
+  421614: { // Arbitrum Sepolia
+    name: "Arbitrum Sepolia",
+    symbol: "ETH",
+    lockContract: "0x637C22367AABD4EC23f7cc3024954cA97A35A6C2",
+    explorerUrl: "https://sepolia.arbiscan.io"
+  },
+  534351: { // Scroll Sepolia
+    name: "Scroll Sepolia",
+    symbol: "ETH",
+    lockContract: "0x637C22367AABD4EC23f7cc3024954cA97A35A6C2",
+    explorerUrl: "https://sepolia.scrollscan.com"
+  },
+  11155420: { // Optimism Sepolia
+    name: "Optimism Sepolia",
+    symbol: "ETH",
+    lockContract: "0x38B0C35Ab49894AC954B137b415Eb256cEC640Df",
+    explorerUrl: "https://sepolia-optimism.etherscan.io"
   }
 };
 
 interface ETHTeleportSectionProps {
   balances: TokenBalance[];
   itemVariants: any;
+  onPortfolioValueCalculated?: (value: number) => void;
 }
 
 interface ChainBalance {
@@ -38,7 +69,8 @@ interface ChainBalance {
 
 const ETHTeleportSectionComponent: React.FC<ETHTeleportSectionProps> = ({
   balances,
-  itemVariants
+  itemVariants,
+  onPortfolioValueCalculated
 }) => {
   // Filter for teleportable ETH balances
   const teleportableBalances = balances.filter(balance => 
@@ -61,13 +93,30 @@ const ETHTeleportSectionComponent: React.FC<ETHTeleportSectionProps> = ({
     return null;
   }
 
-  // Calculate total ETH and value
-  const totalETH = teleportableBalances.reduce((sum, balance) => 
-    sum + parseFloat(balance.formattedBalance), 0
-  );
-  const totalValue = teleportableBalances.reduce((sum, balance) => 
-    sum + (balance.value || 0), 0
-  );
+  // Calculate total ETH and value with debug logging
+  let totalETH = 0;
+  let totalValue = 0;
+  
+  teleportableBalances.forEach(balance => {
+    const ethAmount = parseFloat(balance.formattedBalance);
+    const usdValue = balance.value || 0;
+    
+    // Log individual values for debugging
+    console.log(`Chain ${balance.chainName}: ${ethAmount} ETH @ ${balance.price || 0} USD = $${usdValue}`);
+    
+    totalETH += ethAmount;
+    totalValue += usdValue;
+  });
+  
+  console.log(`Total across all chains: ${totalETH} ETH = $${totalValue}`);
+  
+  // Notify parent component about the portfolio value
+  if (onPortfolioValueCalculated) {
+    // Use React.useEffect to avoid calling during render
+    React.useEffect(() => {
+      onPortfolioValueCalculated(totalValue);
+    }, [totalValue, onPortfolioValueCalculated]);
+  }
 
   return (
     <motion.div
@@ -94,14 +143,14 @@ const ETHTeleportSectionComponent: React.FC<ETHTeleportSectionProps> = ({
                 {formatTokenAmount(totalETH.toString())} ETH
               </div>
               <div className="text-muted-foreground font-medium">
-                {formatCurrency(totalValue)}
+                Total Portfolio Value: {formatCurrency(totalValue)}
               </div>
             </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6 relative z-10">
           {/* Chain Overview */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {teleportableBalances.map((balance) => {
               const config = TELEPORT_CONFIGS[balance.chainId as keyof typeof TELEPORT_CONFIGS];
               
@@ -133,7 +182,7 @@ const ETHTeleportSectionComponent: React.FC<ETHTeleportSectionProps> = ({
                 </motion.div>
               );
             })}
-          </div>
+          </div> */}
 
           {/* Unified Teleport Interface */}
           <UnifiedTeleport 
@@ -175,3 +224,13 @@ const ETHTeleportSectionComponent: React.FC<ETHTeleportSectionProps> = ({
 ETHTeleportSectionComponent.displayName = 'ETHTeleportSection';
 
 export const ETHTeleportSection = memo(ETHTeleportSectionComponent);
+
+//image links for chain icons
+//arbitrum - https://icons.llamao.fi/icons/chains/rsz_arbitrum.jpg
+//polygon - https://icons.llamao.fi/icons/chains/rsz_polygon.jpg
+//monad - https://cdn.prod.website-files.com/667c57e6f9254a4b6d914440/66c3711574e166ac115bba8a_Logo%20Mark.svg
+//scroll - https://icons.llamao.fi/icons/chains/rsz_scroll.jpg
+//zksync - https://icons.llamao.fi/icons/chains/rsz_zksync%20era.jpg
+//unichain - https://icons.llamao.fi/icons/chains/rsz_unichain.jpg
+//optimism - https://icons.llamao.fi/icons/chains/rsz_optimism.jpg
+

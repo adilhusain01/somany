@@ -35,29 +35,29 @@ const priceFeedAddresses: Record<number, { [symbol: string]: { address: string, 
     'ETH': { address: '0x694AA1769357215DE4FAC081bf1f309aDC325306', decimals: 8 },
     'USDC': { address: '0xA2F78ab2355fe2f984D808B5CeE7FD0A93D5270E', decimals: 8 }
   },
-  11155420: {
+  11155420: { // Optimism Sepolia
     'ETH': { address: '0x61Ec26aA57019C486B10502285c5A3D4A4750AD7', decimals: 8 }
   },
-  421614: {
+  421614: { // Arbitrum Sepolia
     'ETH': { address: '0xd30e2101a97dcbAeBCBC04F14C3f624E67A35165', decimals: 8 }
   },
-  84532: {
+  84532: { // Base Sepolia
     'ETH': { address: '0x4aDC67696bA383F43DD60A9e78F2C97Fbbfc7cb1', decimals: 8 },
     'USDC': { address: '0xA2F78ab2355fe2f984D808B5CeE7FD0A93D5270E', decimals: 8 }
   },
-  300: {
+  300: { // ZkSync Sepolia
     'ETH': { address: '0xfEefF7c3fB57d18C5C6Cdd71e45D2D0b4F9377bF', decimals: 8 }
   },
   80002: {
     'POL': { address: '0x001382149eBa3441043c1c66972b4772963f5D43', decimals: 18 }
   },
-  534351: {
+  534351: { // Scroll Sepolia
     'ETH': { address: '0x59F1ec1f10bD7eD9B938431086bC1D9e233ECf41', decimals: 8 }
   },
   10143: {
     'MON': { address: '0x0c76859E85727683Eeba0C70Bc2e0F5781337818', decimals: 18 }
   },
-  1301: {
+  1301: { // Unichain Sepolia
     'ETH': { address: '0xd9c93081210dFc33326B2af4C2c11848095E6a9a', decimals: 8 }
   }
 };
@@ -123,8 +123,10 @@ const fetchTokenPrice = async (chainId: number, symbol: string, client: any): Pr
     
     const price = Number(rawPrice) / 10 ** feedDecimals;
     return { price, isEstimated: false };
-  } catch {
-    if (symbol === 'ETH') return { price: 1800, isEstimated: true };
+  } catch (error) {
+    console.warn(`Failed to fetch price for ${symbol} on chain ${chainId}:`, error);
+    // Provide reliable fallback prices for all supported tokens
+    if (symbol === 'ETH') return { price: 2500, isEstimated: true };
     if (symbol === 'USDC') return { price: 1.0, isEstimated: true };
     return { price: undefined, isEstimated: false };
   }
