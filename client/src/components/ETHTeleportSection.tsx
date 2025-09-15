@@ -88,34 +88,37 @@ const ETHTeleportSectionComponent: React.FC<ETHTeleportSectionProps> = ({
     price: balance.price || 0
   }));
 
+  // Calculate total ETH and value
+  const [totalETH, totalValue] = React.useMemo(() => {
+    let ethTotal = 0;
+    let valueTotal = 0;
+    
+    teleportableBalances.forEach(balance => {
+      const ethAmount = parseFloat(balance.formattedBalance);
+      const usdValue = balance.value || 0;
+      
+      // Log individual values for debugging
+      console.log(`Chain ${balance.chainName}: ${ethAmount} ETH @ ${balance.price || 0} USD = $${usdValue}`);
+      
+      ethTotal += ethAmount;
+      valueTotal += usdValue;
+    });
+    
+    console.log(`Total across all chains: ${ethTotal} ETH = $${valueTotal}`);
+    
+    return [ethTotal, valueTotal];
+  }, [teleportableBalances]);
+  
+  // Notify parent component about the portfolio value
+  React.useEffect(() => {
+    if (onPortfolioValueCalculated) {
+      onPortfolioValueCalculated(totalValue);
+    }
+  }, [totalValue, onPortfolioValueCalculated]);
+  
   // If no teleportable balances, don't render
   if (teleportableBalances.length === 0) {
     return null;
-  }
-
-  // Calculate total ETH and value with debug logging
-  let totalETH = 0;
-  let totalValue = 0;
-  
-  teleportableBalances.forEach(balance => {
-    const ethAmount = parseFloat(balance.formattedBalance);
-    const usdValue = balance.value || 0;
-    
-    // Log individual values for debugging
-    console.log(`Chain ${balance.chainName}: ${ethAmount} ETH @ ${balance.price || 0} USD = $${usdValue}`);
-    
-    totalETH += ethAmount;
-    totalValue += usdValue;
-  });
-  
-  console.log(`Total across all chains: ${totalETH} ETH = $${totalValue}`);
-  
-  // Notify parent component about the portfolio value
-  if (onPortfolioValueCalculated) {
-    // Use React.useEffect to avoid calling during render
-    React.useEffect(() => {
-      onPortfolioValueCalculated(totalValue);
-    }, [totalValue, onPortfolioValueCalculated]);
   }
 
   return (

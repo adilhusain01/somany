@@ -9,11 +9,18 @@ import { useTokenStore } from '../store/tokenStore';
 import { formatCurrency } from '../lib/utils';
 import TeleportedNetwork from './TeleportedNetwork';
 import { ETHTeleportSection } from './ETHTeleportSection';
+import { LockedEthSection } from './LockedEthSection';
+import { usePriceFeed } from '../hooks/usePriceFeed';
 
 const TokenBalances: React.FC = () => {
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
   const { data: balances, isLoading, error } = useTokenBalances();
   const [portfolioValue, setPortfolioValue] = React.useState<number>(0);
+  const [lockedETHValue, setLockedETHValue] = React.useState<number>(0);
+  const [refreshTrigger, setRefreshTrigger] = React.useState<number>(0);
+  
+  // Get ETH price for conversion to USD
+  const { price: ethPrice } = usePriceFeed({ symbol: 'ETH', refreshTrigger });
   
   const { 
     setBalances, 
@@ -204,7 +211,15 @@ const TokenBalances: React.FC = () => {
                     {isLoading ? (
                       <Skeleton className="h-12 w-40 mx-auto" />
                     ) : (
-                      formatCurrency(portfolioValue)
+                      formatCurrency(portfolioValue + lockedETHValue)
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {!isLoading && (
+                      <>
+                        <div>Available: {formatCurrency(portfolioValue)}</div>
+                        <div>Locked: {formatCurrency(lockedETHValue)}</div>
+                      </>
                     )}
                   </div>
                 </div>
@@ -243,12 +258,27 @@ const TokenBalances: React.FC = () => {
         />
       )}
       
+      {/* Locked ETH Section - Shows locked ETH across all networks */}
+      {isConnected && (
+        <LockedEthSection 
+          ethPrice={ethPrice || 3500}
+          itemVariants={itemVariants}
+          userAddress={address}
+          onLockedValueCalculated={setLockedETHValue}
+        />
+      )}
 
       {/* Footer Note */}
       <motion.div variants={itemVariants} className="text-center">
         <p className="text-xs text-muted-foreground">
           * Price data provided by Chainlink Price Feeds when available, estimated prices otherwise
         </p>
+        <button 
+          onClick={() => setRefreshTrigger(prev => prev + 1)} 
+          className="text-xs text-primary hover:underline mt-2"
+        >
+          Refresh all data
+        </button>
       </motion.div>
     </motion.div>
   );

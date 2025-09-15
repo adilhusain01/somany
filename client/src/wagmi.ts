@@ -70,8 +70,8 @@ const unichainSepolia: Chain = {
     decimals: 18,
   },
   rpcUrls: {
-    default: { http: ['https://sepolia.unichain.org'] },
-    public: { http: ['https://sepolia.unichain.org'] },
+    default: { http: ['https://unichain-sepolia-rpc.publicnode.com'] },
+    public: { http: ['https://unichain-sepolia-rpc.publicnode.com'] },
   },
   blockExplorers: {
     default: { name: 'Unichain Explorer', url: 'https://sepolia-explorer.unichain.ca' },

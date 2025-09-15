@@ -17,6 +17,7 @@
     "@tanstack/react-query-devtools": "^5.86.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "ethers": "^6.15.0",
     "framer-motion": "^12.23.12",
     "lucide-react": "^0.542.0",
     "next": "^15.3.3",
@@ -25,7 +26,7 @@
     "react-hot-toast": "^2.6.0",
     "tailwind-merge": "^3.3.1",
     "three": "^0.180.0",
-    "viem": "2.29.2",
+    "viem": "^2.29.2",
     "wagmi": "^2.15.6",
     "zustand": "^5.0.8"
   },

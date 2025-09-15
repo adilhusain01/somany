@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { parseEther } from 'viem';
 import { useAccount, useChainId, useWriteContract, useSwitchChain } from 'wagmi';
@@ -14,6 +14,7 @@ import { useTokenStore } from '../store/tokenStore';
 import { useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { formatTokenAmount, formatCurrency } from '../lib/utils';
+import { debounce as debounceProtection } from '../utils/refreshProtection';
 
 // Chain configurations
 const TELEPORT_CONFIGS = {
@@ -110,6 +111,15 @@ interface ChainProgress {
   amount: string;
 }
 
+// Debounce function to prevent rapid state changes
+const debounce = (fn: Function, ms = 300) => {
+  let timeoutId: ReturnType<typeof setTimeout>;
+  return function(this: any, ...args: any[]) {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn.apply(this, args), ms);
+  };
+};
+
 export const UnifiedTeleport: React.FC<UnifiedTeleportProps> = ({
   chainBalances,
   onTeleportComplete
@@ -121,6 +131,10 @@ export const UnifiedTeleport: React.FC<UnifiedTeleportProps> = ({
   const queryClient = useQueryClient();
   const { writeContractAsync } = useWriteContract();
   const { switchChainAsync } = useSwitchChain();
+  
+  // Flag to prevent refreshes during input and manual debounce timer
+  const isInputActiveRef = useRef(false);
+  const inputDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // State - using refs and stable state to prevent refreshes during chain switches
   const [step, setStep] = useState<TeleportStep>('config');
@@ -165,7 +179,15 @@ export const UnifiedTeleport: React.FC<UnifiedTeleportProps> = ({
   const updateChainAmount = (chainId: number, percentage: number) => {
     const chainBalance = chainBalances.find(b => b.chainId === chainId);
     if (chainBalance) {
-      const amount = (parseFloat(chainBalance.balance) * percentage / 100).toFixed(6);
+      // Calculate amount based on percentage of available balance
+      const balanceNum = parseFloat(chainBalance.balance);
+      const calculatedAmount = (balanceNum * percentage / 100);
+      
+      // Convert to string with minimal decimal places (for cleaner display)
+      // Use toString() instead of toFixed() to avoid unnecessary zeros
+      const amount = calculatedAmount.toString();
+      
+      // Update both percentage and calculated amount
       setChainAmounts(prev => ({
         ...prev,
         [chainId]: { percentage, amount }
@@ -203,8 +225,9 @@ export const UnifiedTeleport: React.FC<UnifiedTeleportProps> = ({
     }, 2000);
     
     if (onTeleportComplete) onTeleportComplete();
-    // Reset execution flag
+    // Reset execution flags
     isExecutingRef.current = false;
+    isInputActiveRef.current = false;
   };
 
   // Execute teleports
@@ -213,6 +236,7 @@ export const UnifiedTeleport: React.FC<UnifiedTeleportProps> = ({
 
     // Mark as executing to prevent component refreshes
     isExecutingRef.current = true;
+    isInputActiveRef.current = true; // Prevent unnecessary refreshes during execution
     
     setStep('executing');
     const initialProgress: ChainProgress[] = activeTeleports.map(([chainId, { amount }]) => ({
@@ -279,11 +303,14 @@ export const UnifiedTeleport: React.FC<UnifiedTeleportProps> = ({
           chainId: chainId
         });
         
+        // Make sure amount is a valid string for parseEther
+        const safeAmount = amount.trim() === '' || isNaN(parseFloat(amount)) ? '0' : amount;
+        
         const txHash = await writeContractAsync({
           address: config.lockContract as `0x${string}`,
           abi: lockAbi,
           functionName: 'lock',
-          value: parseEther(amount)
+          value: parseEther(safeAmount)
         });
         
         console.log(`Transaction sent on ${config.name}:`, txHash);
@@ -370,7 +397,7 @@ export const UnifiedTeleport: React.FC<UnifiedTeleportProps> = ({
                   }`}
                   whileHover={isDisabled ? {} : { scale: 1.01 }}
                 >
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-4">
                       <NetworkIcon chainId={chainId} size={40} className="shadow-lg" />
                       <div>
@@ -402,35 +429,183 @@ export const UnifiedTeleport: React.FC<UnifiedTeleportProps> = ({
                         </p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className={`font-semibold text-sm ${
-                        isDisabled ? 'text-muted-foreground' : 'text-foreground'
-                      }`}>
-                        {!isDisabled && chainAmount ? formatTokenAmount(chainAmount.amount) : '0'} {config.symbol}
+                    
+                    {/* Teleport Amount Input (prominently displayed) */}
+                    {!isDisabled && chainAmount && (
+                      <div className="relative min-w-[180px] max-w-[240px]">
+                        <label className="block text-xs font-semibold mb-1 text-primary">
+                          Teleport Amount
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={chainAmount.amount}
+                            onChange={(e) => {
+                              // Set the input active flag to prevent balance refreshes
+                              isInputActiveRef.current = true;
+                              
+                              // Clear any existing debounce timer
+                              if (inputDebounceTimerRef.current) {
+                                clearTimeout(inputDebounceTimerRef.current);
+                              }
+                              
+                              // Get the raw input as string first
+                              const inputStr = e.target.value;
+                              
+                              // Allow empty string, numbers, and single decimal point
+                              if (inputStr === '' || /^[0-9]*\.?[0-9]*$/.test(inputStr)) {
+                                const maxBalance = parseFloat(balance);
+                                
+                                if (inputStr === '') {
+                                  // Handle empty input
+                                  setChainAmounts(prev => ({
+                                    ...prev,
+                                    [chainId]: {
+                                      percentage: 0,
+                                      amount: ''
+                                    }
+                                  }));
+                                } else {
+                                  // Parse as float only for comparison, but keep original string
+                                  const inputValue = parseFloat(inputStr);
+                                  
+                                  if (!isNaN(inputValue)) {
+                                    // Only clamp if the value exceeds max balance
+                                    const finalValue = inputValue > maxBalance ? maxBalance : inputValue;
+                                    
+                                    // Calculate percentage based on entered amount
+                                    const newPercentage = maxBalance > 0 
+                                      ? Math.round((finalValue / maxBalance) * 100) 
+                                      : 0;
+                                    
+                                    // Use the original string as value unless it exceeds max
+                                    const finalAmount = inputValue > maxBalance 
+                                      ? maxBalance.toString()
+                                      : inputStr;
+                                    
+                                    // Update state with new values (without triggering a refresh)
+                                    setChainAmounts(prev => ({
+                                      ...prev,
+                                      [chainId]: {
+                                        percentage: newPercentage,
+                                        amount: finalAmount
+                                      }
+                                    }));
+                                  }
+                                }
+                                
+                                // Set a timer to reset the input active flag
+                                inputDebounceTimerRef.current = setTimeout(() => {
+                                  isInputActiveRef.current = false;
+                                }, 500);
+                              }
+                            }}
+                            onBlur={() => {
+                              // Reset input active flag when field loses focus
+                              isInputActiveRef.current = false;
+                              if (inputDebounceTimerRef.current) {
+                                clearTimeout(inputDebounceTimerRef.current);
+                                inputDebounceTimerRef.current = null;
+                              }
+                              
+                              // On blur, format the amount properly if needed
+                              const amountStr = chainAmount.amount;
+                              if (amountStr === '' || amountStr === '.') {
+                                // Handle empty or invalid input
+                                setChainAmounts(prev => ({
+                                  ...prev,
+                                  [chainId]: {
+                                    percentage: 0,
+                                    amount: '0'
+                                  }
+                                }));
+                              } else {
+                                const currentAmount = parseFloat(amountStr);
+                                if (!isNaN(currentAmount)) {
+                                  // Format with proper decimal places only on blur
+                                  // Don't format while typing to avoid cursor issues
+                                  setChainAmounts(prev => ({
+                                    ...prev,
+                                    [chainId]: {
+                                      ...prev[chainId],
+                                      amount: currentAmount.toString()
+                                    }
+                                  }));
+                                }
+                              }
+                            }}
+                            className="w-full px-4 py-2 rounded-md border border-border bg-background text-base font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                            placeholder="0.0"
+                            inputMode="decimal"
+                            autoComplete="off"
+                          />
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                            <span className="text-sm font-medium text-muted-foreground">
+                              {config.symbol}
+                            </span>
+                          </div>
+                          <div className="absolute left-0 -bottom-6 flex items-center justify-between w-full">
+                            <span className="text-xs text-muted-foreground">
+                              {chainAmount.amount && !isNaN(parseFloat(chainAmount.amount)) 
+                                ? formatCurrency(parseFloat(chainAmount.amount) * price) 
+                                : '$0.00'}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const maxBalance = parseFloat(balance);
+                                setChainAmounts(prev => ({
+                                  ...prev,
+                                  [chainId]: {
+                                    percentage: 100,
+                                    amount: maxBalance.toFixed(6)
+                                  }
+                                }));
+                              }}
+                              className="text-xs font-medium text-primary hover:text-primary/80"
+                            >
+                              MAX
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        {!isDisabled && chainAmount ? formatCurrency(parseFloat(chainAmount.amount) * price) : 
-                         config.enabled ? '$0' : 'N/A'}
+                    )}
+                    
+                    {/* For disabled chains, show placeholder */}
+                    {isDisabled && (
+                      <div className="text-right min-w-[180px]">
+                        <div className="text-xs text-muted-foreground mb-1">
+                          Teleport Amount
+                        </div>
+                        <div className="font-semibold text-sm text-muted-foreground">
+                          0 {config.symbol}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          $0.00
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                   
                   {!isDisabled && chainAmount && (
-                    <>
+                    <div className="mt-6 mb-2">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-xs font-medium text-muted-foreground">Amount to Teleport</span>
+                        <span className="text-xs font-medium">{chainAmount.percentage}%</span>
+                      </div>
                       <Slider
                         value={[chainAmount.percentage]}
                         min={0}
                         max={100}
                         step={1}
                         onValueChange={(value) => updateChainAmount(chainId, value[0])}
-                        className="my-3"
+                        className="mb-1"
                       />
                       <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>0%</span>
-                        <span>{chainAmount.percentage}%</span>
-                        <span>100%</span>
+                        <span>0 {config.symbol}</span>
+                        <span>{formatTokenAmount(balance)} {config.symbol}</span>
                       </div>
-                    </>
+                    </div>
                   )}
                   
                   {isDisabled && (
