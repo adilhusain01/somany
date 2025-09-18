@@ -143,6 +143,10 @@ const TeleportedNetwork: React.FC<TeleportedNetworkProps> = ({ className }) => {
         })
       });
       
+      // Verify we can connect to Somnia and get the chain ID
+      const chainId = await somniaClient.getChainId();
+      console.log('Connected to Somnia chain ID:', chainId);
+      
       // Fetch wETH balance on Somnia
       const wethBalanceRaw = await somniaClient.readContract({
         address: WETH_TOKEN_ADDRESS as `0x${string}`,
