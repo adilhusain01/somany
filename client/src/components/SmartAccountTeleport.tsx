@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { parseEther, encodeFunctionData, hashMessage, stringToHex } from 'viem';
-import { useAccount, useWriteContract, useChainId, useSignMessage } from 'wagmi';
+import { useAccount, useWriteContract, useChainId, useSignTypedData } from 'wagmi';
 import { Zap, AlertCircle, Check, Loader2, Sparkles } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -100,7 +100,7 @@ export const SmartAccountTeleport: React.FC<SmartAccountTeleportProps> = ({
   const { address, isConnected } = useAccount();
   const { writeContractAsync } = useWriteContract();
   const chainId = useChainId();
-  const { signMessageAsync } = useSignMessage();
+  const { signTypedDataAsync } = useSignTypedData();
   const { 
     isSmartAccount, 
     capabilities, 
@@ -183,25 +183,80 @@ export const SmartAccountTeleport: React.FC<SmartAccountTeleportProps> = ({
         chainAmounts: validChainAmounts
       });
 
-      // Generate signature for batch intent
-      const batchIntentMessage = JSON.stringify({
-        userAddress: address,
-        chainAmounts: validChainAmounts,
-        totalAmount: actualTotal,
-        timestamp: Date.now()
-      });
+      // Create EIP-712 typed data for batch intent
+      const calls = createBatchCalls();
+      const deadline = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
+      
+      // Get user's current nonce (you'll need to fetch this from the contract)
+      const userNonce = 0; // TODO: Fetch from contract
+      
+      // Use current chain for signing but design for universal verification
+      // The contract will verify with a universal domain, but wallet signs with current chain
+      const domain = {
+        name: 'BatchExecutor',
+        version: '1',
+        chainId: chainId, // Use current chain ID for wallet compatibility
+        verifyingContract: '0x1111111111111111111111111111111111111111' as `0x${string}` // Universal placeholder
+      };
+
+      console.log('🔐 Smart Account: EIP-712 Domain for signing:', domain);
+
+      const types = {
+        Call: [
+          { name: 'to', type: 'address' },
+          { name: 'value', type: 'uint256' },
+          { name: 'data', type: 'bytes' }
+        ],
+        BatchIntent: [
+          { name: 'user', type: 'address' },
+          { name: 'calls', type: 'Call[]' },
+          { name: 'nonce', type: 'uint256' },
+          { name: 'deadline', type: 'uint256' }
+        ]
+      };
+
+      // Create batch intent for EIP-712 signing (with BigInt values)
+      const batchIntentForSigning = {
+        user: address,
+        calls: calls, // Keep BigInt values for signing
+        nonce: userNonce,
+        deadline: deadline
+      };
+
+      // Create batch intent for JSON serialization (with string values)
+      const batchIntentForAPI = {
+        user: address,
+        calls: calls.map(call => ({
+          to: call.to,
+          value: call.value.toString(), // Convert BigInt to string for JSON
+          data: call.data
+        })),
+        nonce: userNonce,
+        deadline: deadline
+      };
+
+      console.log('📝 Smart Account: Creating EIP-712 signature for batch intent');
 
       let signature;
       try {
-        signature = await signMessageAsync({ message: batchIntentMessage });
-        console.log('✍️ Smart Account: Batch intent signed');
+        // Use wagmi's signTypedData for EIP-712 signing
+        signature = await signTypedDataAsync({
+          domain,
+          types,
+          primaryType: 'BatchIntent',
+          message: batchIntentForSigning
+        });
+        console.log('✍️ Smart Account: EIP-712 batch intent signed');
       } catch (signError: any) {
-        console.log('⚠️ Smart Account: Signature failed, proceeding without signature:', signError.message);
+        console.log('⚠️ Smart Account: EIP-712 signature failed:', signError.message);
         signature = null;
+        throw new Error('User signature required for batch execution');
       }
 
       // Try bundler API first (Phase 2 implementation)
       try {
+        console.log('🚀 Sending batch intent to bundler...');
+        
         const bundlerResponse = await fetch('http://localhost:3001/batch-intent', {
           method: 'POST',
           headers: {
@@ -209,14 +264,21 @@ export const SmartAccountTeleport: React.FC<SmartAccountTeleportProps> = ({
           },
           body: JSON.stringify({
             userAddress: address,
+            batchIntent: batchIntentForAPI, // Re-enable signature mode
+            signature: signature,
+            // Legacy fields for backward compatibility
             chainAmounts: validChainAmounts,
-            totalAmount: actualTotal,
-            signature: signature
-          })
+            totalAmount: actualTotal
+          }),
+          // Add explicit timeout for longer bundler processing
+          signal: AbortSignal.timeout(120000) // 2 minutes timeout
         });
+
+        console.log('📡 Bundler response status:', bundlerResponse.status);
 
         if (bundlerResponse.ok) {
           const result = await bundlerResponse.json();
+          console.log('📊 Bundler result:', result);
           
           if (result.success) {
             setBatchStatus('completed');
@@ -226,21 +288,34 @@ export const SmartAccountTeleport: React.FC<SmartAccountTeleportProps> = ({
             onTeleportComplete?.();
             return;
           } else {
-            console.log('📝 Bundler failed, falling back to direct execution');
+            console.log('❌ Bundler processing failed:', result);
+            toast.error(`Bundler processing failed: ${JSON.stringify(result.results)}`, {
+              id: 'smart-teleport'
+            });
+            return;
           }
+        } else {
+          const errorText = await bundlerResponse.text();
+          console.log('❌ Bundler HTTP error:', bundlerResponse.status, errorText);
+          toast.error(`Bundler HTTP error: ${bundlerResponse.status}`, {
+            id: 'smart-teleport'
+          });
+          return;
         }
       } catch (bundlerError: any) {
-        console.log('📝 Bundler unavailable:', bundlerError.message);
-        toast.error('Bundler service unavailable. Please start the bundler service first.', {
-          id: 'smart-teleport'
-        });
+        console.log('❌ Bundler error:', bundlerError);
+        
+        if (bundlerError.name === 'TimeoutError') {
+          toast.error('Bundler processing timed out. Please try again.', {
+            id: 'smart-teleport'
+          });
+        } else {
+          toast.error('Bundler service unavailable. Please start the bundler service first.', {
+            id: 'smart-teleport'
+          });
+        }
         return;
       }
-
-      // If we reach here, bundler was available but returned error
-      toast.error('Bundler processing failed. Please try again.', {
-        id: 'smart-teleport'
-      });
 
     } catch (err: any) {
       console.error('❌ Smart Account: Batch teleport failed:', err);

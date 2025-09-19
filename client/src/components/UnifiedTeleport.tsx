@@ -209,7 +209,12 @@ export const UnifiedTeleport: React.FC<UnifiedTeleportProps> = ({
     }
   };
 
-  // Calculate total value
+  // Calculate total ETH amount
+  const totalAmount = Object.entries(chainAmounts).reduce((total, [chainId, { amount }]) => {
+    return total + parseFloat(amount || 0);
+  }, 0);
+
+  // Calculate total USD value
   const totalValue = Object.entries(chainAmounts).reduce((total, [chainId, { amount }]) => {
     const chainBalance = chainBalances.find(b => b.chainId === Number(chainId));
     return total + (parseFloat(amount) * (chainBalance?.price || 0));
@@ -658,7 +663,7 @@ export const UnifiedTeleport: React.FC<UnifiedTeleportProps> = ({
                 <div className="mt-6">
                   <SmartAccountTeleport
                     chainAmounts={chainAmounts}
-                    totalAmount={totalValue.toFixed(6)}
+                    totalAmount={totalAmount.toFixed(6)}
                     onTeleportComplete={() => {
                       triggerTeleportRefresh();
                       onTeleportComplete?.();

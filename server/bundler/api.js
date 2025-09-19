@@ -81,21 +81,35 @@ app.get('/chains', (req, res) => {
 // Process batch intent
 app.post('/batch-intent', rateLimit, async (req, res) => {
   try {
-    const { userAddress, chainAmounts, totalAmount, signature } = req.body;
+    const { userAddress, batchIntent, signature, chainAmounts, totalAmount } = req.body;
 
     console.log('📥 Bundler: Received batch intent:', {
       userAddress,
+      batchIntent,
+      signature: signature ? 'Present' : 'Missing',
+      // Legacy fields
       chainAmounts,
-      totalAmount,
-      signature
+      totalAmount
     });
 
-    // Validation
-    if (!userAddress || !chainAmounts || !totalAmount) {
-      console.log('❌ Bundler: Missing required fields');
+    // Validation - support both new and legacy formats
+    if (!userAddress) {
+      console.log('❌ Bundler: Missing userAddress');
+      return res.status(400).json({
+        error: 'Missing required field: userAddress'
+      });
+    }
+
+    // Check if we have new format (batchIntent + signature) or legacy format
+    const hasNewFormat = batchIntent && signature;
+    const hasLegacyFormat = chainAmounts && totalAmount;
+
+    if (!hasNewFormat && !hasLegacyFormat) {
+      console.log('❌ Bundler: Missing required fields for both formats');
       return res.status(400).json({
         error: 'Missing required fields',
-        required: ['userAddress', 'chainAmounts', 'totalAmount']
+        newFormat: ['userAddress', 'batchIntent', 'signature'],
+        legacyFormat: ['userAddress', 'chainAmounts', 'totalAmount']
       });
     }
 
@@ -120,16 +134,28 @@ app.post('/batch-intent', rateLimit, async (req, res) => {
       });
     }
 
-    console.log(`📥 Batch intent received from ${userAddress}`);
-    console.log(`   Total: ${totalAmount} ETH across ${Object.keys(chainAmounts).length} chains`);
+    let result;
 
-    // Process the batch intent
-    const result = await bundler.processBatchIntent({
-      userAddress,
-      chainAmounts,
-      totalAmount,
-      nonce: Date.now()
-    });
+    if (hasNewFormat) {
+      console.log(`📥 New format batch intent received from ${userAddress}`);
+      console.log(`   Calls: ${batchIntent.calls.length}`);
+      console.log(`   Nonce: ${batchIntent.nonce}`);
+      console.log(`   Deadline: ${new Date(batchIntent.deadline * 1000).toISOString()}`);
+
+      // Process with signature-based method
+      result = await bundler.processBatchIntentWithSignature(batchIntent, signature);
+    } else {
+      console.log(`📥 Legacy batch intent received from ${userAddress}`);
+      console.log(`   Total: ${totalAmount} ETH across ${Object.keys(chainAmounts).length} chains`);
+
+      // Process the legacy batch intent
+      result = await bundler.processBatchIntent({
+        userAddress,
+        chainAmounts,
+        totalAmount,
+        nonce: Date.now()
+      });
+    }
 
     if (result.success) {
       res.json({
