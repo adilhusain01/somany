@@ -99,7 +99,7 @@ const TeleportedNetwork: React.FC<TeleportedNetworkProps> = ({ className }) => {
   const SOMNIA_CHAIN_ID = 50312;
   const SOMNIA_RPC_URL = 'https://dream-rpc.somnia.network';
   const SOMNIA_NETWORK_NAME = 'Somnia Testnet';
-  const WETH_TOKEN_ADDRESS = '0x38B0C35Ab49894AC954B137b415Eb256cEC640Df';
+  const WETH_TOKEN_ADDRESS = '0x26DB2f5C65e10861a7371ECbdB2b964eAF6a3126';
   
   // Use the working hook for locked ETH data
   const { totalLockedEth, totalLockedValue, isLoading: lockedEthLoading } = useLockedEthBalances({

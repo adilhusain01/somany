@@ -2,6 +2,13 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { parseEther } from 'viem';
 import { useAccount, useChainId, useWriteContract, useSwitchChain } from 'wagmi';
+import { 
+  sepolia, 
+  baseSepolia,
+  arbitrumSepolia,
+  scrollSepolia,
+  optimismSepolia 
+} from 'viem/chains';
 import { Zap, Check, Clock, AlertCircle, ChevronRight, Loader2 } from 'lucide-react';
 import NetworkIcon from './NetworkIcon';
 import { Button } from './ui/button';
@@ -16,64 +23,91 @@ import toast from 'react-hot-toast';
 import { formatTokenAmount, formatCurrency } from '../lib/utils';
 import { debounce as debounceProtection } from '../utils/refreshProtection';
 
+// Custom chain definitions
+const zkSyncEra = {
+  id: 300,
+  name: 'zkSync Era Sepolia',
+  network: 'zksync-era-sepolia',
+  nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 }
+};
+
+const unichainSepolia = {
+  id: 1301,
+  name: 'Unichain Sepolia',
+  network: 'unichain-sepolia',
+  nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 }
+};
+
 // Chain configurations
 const TELEPORT_CONFIGS = {
-  // Active chains with deployed contracts
   11155111: { // Ethereum Sepolia
     name: "Ethereum Sepolia",
     symbol: "ETH",
-    lockContract: "0x1227Fa26acd6cDb75E7764C8bfFcB47E26fB63f4",
+    lockContract: "0x46CBFE09639cC35e651D2083E70dcEe75Cf5CEDF",
+    explorerUrl: "https://sepolia.etherscan.io",
+    chain: sepolia,
     enabled: true,
   },
   84532: { // Base Sepolia
     name: "Base Sepolia", 
     symbol: "ETH",
-    lockContract: "0xaBd2429cf7BD4F25d0d99FF2057Ef9FDbc1c64F4",
+    lockContract: "0x1231A2cf8D00167BB108498B81ee37a05Df4e12F",
+    explorerUrl: "https://base-sepolia.blockscout.com",
+    chain: baseSepolia,
     enabled: true,
   },
-  
-  // Newly enabled chains
-  11155420: { // Optimism Sepolia
-    name: "Optimism Sepolia",
-    symbol: "ETH", 
-    lockContract: "0x38B0C35Ab49894AC954B137b415Eb256cEC640Df",
+  300: { // ZkSync Era Sepolia
+    name: "ZkSync Era Sepolia",
+    symbol: "ETH",
+    lockContract: "0xC543B423f59d45A9439895d8959c355921eE74c4",
+    explorerUrl: "https://sepolia.explorer.zksync.io",
+    chain: zkSyncEra,
+    enabled: true,
+  },
+  1301: { // Unichain Sepolia
+    name: "Unichain Sepolia",
+    symbol: "ETH",
+    lockContract: "0xD4714eDB7Fc0104B3f7a472EF800420C95e8dBe0",
+    explorerUrl: "https://uniscan.io/sepolia",
+    chain: unichainSepolia,
     enabled: true,
   },
   421614: { // Arbitrum Sepolia
     name: "Arbitrum Sepolia",
     symbol: "ETH",
-    lockContract: "0x637C22367AABD4EC23f7cc3024954cA97A35A6C2",
+    lockContract: "0x71D8e503Af96dc8Ed3b9f7064E07e472a81b9d03",
+    explorerUrl: "https://sepolia.arbiscan.io",
+    chain: arbitrumSepolia,
     enabled: true,
   },
-  300: { // zkSync Sepolia
-    name: "zkSync Sepolia",
+  534351: { // Scroll Sepolia
+    name: "Scroll Sepolia",
     symbol: "ETH",
-    lockContract: "0x637C22367AABD4EC23f7cc3024954cA97A35A6C2",
+    lockContract: "0x3Cc3cD212d73cB207Af90F5609D642ce7c3E245d",
+    explorerUrl: "https://sepolia.scrollscan.com",
+    chain: scrollSepolia,
     enabled: true,
   },
+  11155420: { // Optimism Sepolia
+    name: "Optimism Sepolia",
+    symbol: "ETH",
+    lockContract: "0x727A2162c03F4D87165E1694A7Eb5A3fd6E21dd5",
+    explorerUrl: "https://sepolia-optimism.etherscan.io",
+    chain: optimismSepolia,
+    enabled: true,
+  },
+  // Disabled chains
   80002: { // Polygon Amoy
     name: "Polygon Amoy",
     symbol: "MATIC",
     lockContract: null,
     enabled: false,
   },
-  534351: { // Scroll Sepolia
-    name: "Scroll Sepolia",
-    symbol: "ETH",
-    lockContract: "0x637C22367AABD4EC23f7cc3024954cA97A35A6C2",
-    enabled: true,
-  },
   10143: { // Monad Testnet
     name: "Monad Testnet",
     symbol: "MON",
     lockContract: null,
     enabled: false,
-  },
-  1301: { // Unichain Sepolia
-    name: "Unichain Sepolia",
-    symbol: "ETH",
-    lockContract: "0x637C22367AABD4EC23f7cc3024954cA97A35A6C2",
-    enabled: true,
   }
 };
 
@@ -633,7 +667,7 @@ export const UnifiedTeleport: React.FC<UnifiedTeleportProps> = ({
             >
               <div className="flex flex-col lg:flex-row gap-6 items-center">
                 {/* Summary */}
-                <div className="flex-1 grid grid-cols-2 gap-4">
+                <div className="flex-1 grid grid-cols-4 gap-4">
                   <div className="text-center p-3 rounded-lg bg-background border">
                     <div className="text-lg font-bold">{activeTeleports.length}</div>
                     <div className="text-xs text-muted-foreground font-medium">Networks</div>
@@ -641,6 +675,21 @@ export const UnifiedTeleport: React.FC<UnifiedTeleportProps> = ({
                   <div className="text-center p-3 rounded-lg bg-background border">
                     <div className="text-lg font-bold">{formatCurrency(totalValue)}</div>
                     <div className="text-xs text-muted-foreground font-medium">Total Value</div>
+                  </div>
+                  <div className="text-center p-3 rounded-lg bg-background border">
+                    <div className="text-lg font-bold">
+                      {activeTeleports.map(([chainId, { amount }]) => parseFloat(amount)).reduce((a, b) => a + b, 0).toFixed(6)}
+                    </div>
+                    <div className="text-xs text-muted-foreground font-medium">Total ETH</div>
+                  </div>
+                  {/* Reward 10% of total eth in STT */}
+                  <div className="text-center p-3 rounded-lg bg-background border">
+                    <div className="text-lg font-bold">
+                      {(
+                        activeTeleports.map(([chainId, { amount }]) => parseFloat(amount)).reduce((a, b) => a + b, 0) * 0.1
+                      ).toFixed(6)}
+                    </div>
+                    <div className="text-xs text-muted-foreground font-medium">Reward in STT</div>
                   </div>
                 </div>
 

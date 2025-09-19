@@ -17,6 +17,13 @@ import {
   getTokenIconUrl, 
   cn 
 } from '../lib/utils';
+import { 
+  sepolia, 
+  baseSepolia,
+  arbitrumSepolia,
+  scrollSepolia,
+  optimismSepolia 
+} from 'viem/chains';
 
 interface TokenBalanceItemProps {
   balance: TokenBalance;
@@ -29,15 +36,71 @@ const TokenBalanceItem: React.FC<TokenBalanceItemProps> = ({ balance, isDust, it
   const { refetch: refetchBalances } = useTokenBalances();
   const { triggerTeleportRefresh } = useTokenStore();
   const queryClient = useQueryClient();
+  // Custom chain definitions
+  const zkSyncEra = {
+    id: 300,
+    name: 'zkSync Era Sepolia',
+    network: 'zksync-era-sepolia',
+    nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 }
+  };
+
+  const unichainSepolia = {
+    id: 1301,
+    name: 'Unichain Sepolia',
+    network: 'unichain-sepolia',
+    nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 }
+  };
+
   // Supported chains and their contract addresses
   const TELEPORT_CONFIGS = {
     11155111: { // Ethereum Sepolia
       name: "Ethereum Sepolia",
-      lockContract: "0x1227Fa26acd6cDb75E7764C8bfFcB47E26fB63f4"
+      symbol: "ETH",
+      lockContract: "0x46CBFE09639cC35e651D2083E70dcEe75Cf5CEDF",
+      explorerUrl: "https://sepolia.etherscan.io",
+      chain: sepolia
     },
     84532: { // Base Sepolia
       name: "Base Sepolia", 
-      lockContract: "0xaBd2429cf7BD4F25d0d99FF2057Ef9FDbc1c64F4"
+      symbol: "ETH",
+      lockContract: "0x1231A2cf8D00167BB108498B81ee37a05Df4e12F",
+      explorerUrl: "https://base-sepolia.blockscout.com",
+      chain: baseSepolia
+    },
+    300: { // ZkSync Era Sepolia
+      name: "ZkSync Era Sepolia",
+      symbol: "ETH",
+      lockContract: "0xC543B423f59d45A9439895d8959c355921eE74c4",
+      explorerUrl: "https://sepolia.explorer.zksync.io",
+      chain: zkSyncEra
+    },
+    1301: { // Unichain Sepolia
+      name: "Unichain Sepolia",
+      symbol: "ETH",
+      lockContract: "0xD4714eDB7Fc0104B3f7a472EF800420C95e8dBe0",
+      explorerUrl: "https://uniscan.io/sepolia",
+      chain: unichainSepolia
+    },
+    421614: { // Arbitrum Sepolia
+      name: "Arbitrum Sepolia",
+      symbol: "ETH",
+      lockContract: "0x71D8e503Af96dc8Ed3b9f7064E07e472a81b9d03",
+      explorerUrl: "https://sepolia.arbiscan.io",
+      chain: arbitrumSepolia
+    },
+    534351: { // Scroll Sepolia
+      name: "Scroll Sepolia",
+      symbol: "ETH",
+      lockContract: "0x3Cc3cD212d73cB207Af90F5609D642ce7c3E245d",
+      explorerUrl: "https://sepolia.scrollscan.com",
+      chain: scrollSepolia
+    },
+    11155420: { // Optimism Sepolia
+      name: "Optimism Sepolia",
+      symbol: "ETH",
+      lockContract: "0x727A2162c03F4D87165E1694A7Eb5A3fd6E21dd5",
+      explorerUrl: "https://sepolia-optimism.etherscan.io",
+      chain: optimismSepolia
     }
   };
   
