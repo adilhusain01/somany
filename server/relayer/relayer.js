@@ -59,12 +59,21 @@ const SOURCE_CHAINS = [
 const DST_RPC = process.env.DST_RPC;  // Destination chain RPC (Lasna)
 const RELAYER_PRIVATE_KEY = process.env.PRIVATE_KEY; // Same relayer key allowed on mintable token
 const TOKEN_CONTRACT = process.env.TOKEN_CONTRACT; // deployed RelayerMintableToken
+const STT_CONTRACT = process.env.STT_CONTRACT; // Somnia Token (STT) contract
 
 
 async function main() {
   // Destination provider and relayer signer
   const dstProvider = new ethers.JsonRpcProvider(DST_RPC);
   const wallet = new ethers.Wallet(RELAYER_PRIVATE_KEY, dstProvider);
+  
+  // Nonce management
+  let currentNonce = await dstProvider.getTransactionCount(wallet.address);
+  const pendingTransactions = new Map(); // Track pending transactions
+
+  // Transaction queue for sequential processing
+  const transactionQueue = [];
+  let isProcessingQueue = false;
 
   // ABIs
   const lockAbi = [
@@ -77,6 +86,65 @@ async function main() {
     "function symbol() view returns (string)",
     "function balanceOf(address owner) view returns (uint256)"
   ];
+  const sttAbi = [
+    "function transfer(address to, uint256 amount) external returns (bool)",
+    "function balanceOf(address owner) view returns (uint256)",
+    "function decimals() view returns (uint8)",
+    "function name() view returns (string)",
+    "function symbol() view returns (string)"
+  ];
+
+  // Helper function to process transaction queue
+  async function processTransactionQueue() {
+    if (isProcessingQueue || transactionQueue.length === 0) return;
+    
+    isProcessingQueue = true;
+    
+    while (transactionQueue.length > 0) {
+      const txInfo = transactionQueue[0];
+      try {
+        // Get the latest nonce
+        currentNonce = await dstProvider.getTransactionCount(wallet.address);
+        
+        // Prepare transaction
+        const tx = await txInfo.transaction();
+        tx.nonce = currentNonce;
+        
+        // Send and wait for transaction
+        const sentTx = await wallet.sendTransaction(tx);
+        console.log(`${txInfo.chainName}: Transaction sent with nonce ${currentNonce}:`, sentTx.hash);
+        
+        const receipt = await sentTx.wait();
+        console.log(`${txInfo.chainName}: Transaction confirmed:`, sentTx.hash);
+        
+        // Transaction successful, remove from queue
+        transactionQueue.shift();
+        currentNonce++;
+        
+        // Call success callback if provided
+        if (txInfo.onSuccess) {
+          await txInfo.onSuccess(receipt);
+        }
+      } catch (error) {
+        console.error(`${txInfo.chainName}: Transaction failed:`, error);
+        
+        if (error.message.includes("nonce too low") || error.message.includes("already known")) {
+          // Nonce issue - skip this transaction as it's probably already processed
+          console.log(`${txInfo.chainName}: Skipping transaction due to nonce issue`);
+          transactionQueue.shift();
+        } else if (error.message.includes("insufficient funds")) {
+          console.error(`${txInfo.chainName}: Insufficient funds for transaction`);
+          // Wait for a while before retrying
+          await new Promise(resolve => setTimeout(resolve, 30000));
+        } else {
+          // For other errors, wait and retry
+          await new Promise(resolve => setTimeout(resolve, 5000));
+        }
+      }
+    }
+    
+    isProcessingQueue = false;
+  }
 
   // Destination token contract (wETH)
   const token = new ethers.Contract(TOKEN_CONTRACT, tokenAbi, wallet);
@@ -90,6 +158,15 @@ async function main() {
   // Check the relayer balance
   const relayerBalance = await dstProvider.getBalance(wallet.address);
   console.log(`Relayer ETH balance: ${ethers.formatEther(relayerBalance)} ETH`);
+
+  // Initialize STT token contract
+  const sttToken = new ethers.Contract(STT_CONTRACT, sttAbi, wallet);
+  const sttDecimals = await sttToken.decimals();
+  const sttName = await sttToken.name();
+  const sttSymbol = await sttToken.symbol();
+  const sttBalance = await sttToken.balanceOf(wallet.address);
+  console.log(`Connected to STT token contract: ${sttName} (${sttSymbol})`);
+  console.log(`Relayer STT balance: ${ethers.formatEther(sttBalance)} STT`);
 
   console.log(`
 █▀█ █▀▀ █░░ ▄▀█ █▄█ █▀▀ █▀█   █▀ ▀█▀ ▄▀█ █▀█ ▀█▀ █▀▀ █▀▄
@@ -166,35 +243,56 @@ Minting wETH tokens on destination chain
               console.log(`${chainSetup.name}: Preparing to mint ${ethers.formatEther(mintAmount)} wETH to ${user}`);
               console.log(`${chainSetup.name}: User locked ETH on chain ID ${originChainId}`);
               
-              // Send the mint transaction
-              const tx = await token.mint(user, mintAmount);
-              console.log(`${chainSetup.name}: wETH mint transaction sent:`, tx.hash);
+              // Queue the mint transaction
+              const mintTx = {
+                chainName: chainSetup.name,
+                transaction: async () => ({
+                  to: TOKEN_CONTRACT,
+                  data: token.interface.encodeFunctionData('mint', [user, mintAmount])
+                }),
+                onSuccess: async (receipt) => {
+                  // Mark this event as processed to prevent double minting
+                  processedEvents.add(eventId);
+                  
+                  console.log(`${chainSetup.name}: Successfully minted ${ethers.formatEther(mintAmount)} wETH to ${user}`);
+                  
+                  // Get updated user balance
+                  const userBalance = await token.balanceOf(user);
+                  console.log(`${chainSetup.name}: User ${user} now has ${ethers.formatEther(userBalance)} wETH`);
+
+                  // Calculate STT reward amount (10% of locked ETH)
+                  const rewardAmount = (amount * BigInt(10)) / BigInt(100);
+
+                  // Queue the STT reward transaction
+                  transactionQueue.push({
+                    chainName: chainSetup.name,
+                    transaction: async () => ({
+                      to: STT_CONTRACT,
+                      data: sttToken.interface.encodeFunctionData('transfer', [user, rewardAmount])
+                    }),
+                    onSuccess: async (sttReceipt) => {
+                      const newSttBalance = await sttToken.balanceOf(user);
+                      console.log(`${chainSetup.name}: STT reward sent successfully. User now has ${ethers.formatEther(newSttBalance)} STT`);
+                      
+                      // Log summary of the cross-chain transaction
+                      console.log(`✅ CROSS-CHAIN TELEPORT COMPLETED:`);
+                      console.log(`   Source: ${chainSetup.name} (Chain ID: ${chainSetup.chainId})`);
+                      console.log(`   Destination: Wrapped token on destination chain`);
+                      console.log(`   Amount: ${ethers.formatEther(amount)} ETH → ${ethers.formatEther(mintAmount)} wETH`);
+                      console.log(`   Reward: ${ethers.formatEther(rewardAmount)} STT`);
+                      console.log(`   User: ${user}`);
+                    }
+                  });
+                }
+              };
+
+              // Add mint transaction to queue
+              transactionQueue.push(mintTx);
               
-              // Wait for confirmation
-              const receipt = await tx.wait();
-              
-              // Verify the transaction was successful
-              if (receipt.status === 1) {
-                // Mark this event as processed to prevent double minting
-                processedEvents.add(eventId);
-                
-                console.log(`${chainSetup.name}: Successfully minted ${ethers.formatEther(mintAmount)} wETH to ${user}`);
-                
-                // Get updated user balance
-                const userBalance = await token.balanceOf(user);
-                console.log(`${chainSetup.name}: User ${user} now has ${ethers.formatEther(userBalance)} wETH`);
-                
-                // Log summary of the cross-chain transaction
-                console.log(`✅ CROSS-CHAIN TELEPORT COMPLETED:`);
-                console.log(`   Source: ${chainSetup.name} (Chain ID: ${chainSetup.chainId})`);
-                console.log(`   Destination: Wrapped token on destination chain`);
-                console.log(`   Amount: ${ethers.formatEther(amount)} ETH → ${ethers.formatEther(mintAmount)} wETH`);
-                console.log(`   User: ${user}`);
-              } else {
-                console.error(`${chainSetup.name}: Mint transaction failed:`, receipt);
-              }
+              // Start processing queue if not already processing
+              processTransactionQueue();
             } catch (err) {
-              console.error(`${chainSetup.name}: wETH mint failed:`, err);
+              console.error(`${chainSetup.name}: Failed to queue transactions:`, err);
               
               // Try to determine the reason for failure
               if (err.message) {

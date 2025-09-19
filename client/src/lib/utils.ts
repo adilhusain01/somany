@@ -33,6 +33,17 @@ export function shortenAddress(address: string, chars = 4): string {
   return `${address.substring(0, chars + 2)}...${address.substring(42 - chars)}`
 }
 
+export function formatNumber(value: number, minimumFractionDigits = 2, maximumFractionDigits = 6): string {
+  if (isNaN(value) || value === undefined) {
+    return '0';
+  }
+
+  return new Intl.NumberFormat('en-US', {
+    minimumFractionDigits,
+    maximumFractionDigits,
+  }).format(value);
+}
+
 export function getBlockExplorerUrl(chainId: number, hash: string): string {
   const explorers: Record<number, string> = {
     1: 'https://etherscan.io',

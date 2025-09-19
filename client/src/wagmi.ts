@@ -41,7 +41,23 @@ const zkSyncSepolia: Chain = {
 
 // ApeChain Testnet removed
 
-// World Chain Sepolia removed
+const somniaTestnet: Chain = {
+  id: 50312,
+  name: 'Somnia Testnet',
+  nativeCurrency: {
+    name: 'Somnia',
+    symbol: 'ETH',
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: { http: ['https://dream-rpc.somnia.network'] },
+    public: { http: ['https://dream-rpc.somnia.network'] },
+  },
+  blockExplorers: {
+    default: { name: 'Somnia Explorer', url: 'https://shannon-explorer.somnia.network' },
+  },
+  testnet: true,
+};
 
 const monadTestnet: Chain = {
   id: 10143,
@@ -106,6 +122,7 @@ export const config = getDefaultConfig({
     scrollSepolia,
     monadTestnet,
     unichainSepolia,
+    somniaTestnet,
   ],
   ssr: true,
 });

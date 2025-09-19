@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Skeleton } from './ui/skeleton';
 import { useTokenBalances } from '../hooks/useTokenBalances';
 import { useTokenStore } from '../store/tokenStore';
-import { formatCurrency } from '../lib/utils';
+import { formatCurrency, formatNumber } from '../lib/utils';
+import { useSTTBalance } from '../hooks/useSTTBalance';
 import TeleportedNetwork from './TeleportedNetwork';
 import { ETHTeleportSection } from './ETHTeleportSection';
 import { LockedEthSection } from './LockedEthSection';
@@ -15,6 +16,7 @@ import { usePriceFeed } from '../hooks/usePriceFeed';
 const TokenBalances: React.FC = () => {
   const { isConnected, address } = useAccount();
   const { data: balances, isLoading, error } = useTokenBalances();
+  const { balance: sttBalance, isLoading: isSTTLoading } = useSTTBalance();
   const [portfolioValue, setPortfolioValue] = React.useState<number>(0);
   const [lockedETHValue, setLockedETHValue] = React.useState<number>(0);
   const [refreshTrigger, setRefreshTrigger] = React.useState<number>(0);
@@ -199,7 +201,7 @@ const TokenBalances: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <motion.div 
                 className="text-center p-6 rounded-lg bg-muted/30 border"
                 whileHover={{ scale: 1.02 }}
@@ -240,6 +242,29 @@ const TokenBalances: React.FC = () => {
                         acc + (arr.findIndex(b => b.chainId === balance.chainId) === index ? 1 : 0), 0
                       ) || 0
                     )}
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div 
+                className="text-center p-6 rounded-lg bg-muted/30 border"
+                whileHover={{ scale: 1.02 }}
+                transition={{ duration: 0.2 }}
+              >
+                <div className="space-y-3">
+                  <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">STT Rewards Earned</p>
+                  <div className="text-3xl font-bold">
+                    {isSTTLoading ? (
+                      <Skeleton className="h-10 w-24 mx-auto" />
+                    ) : (
+                      <div className="flex items-center justify-center gap-2">
+                        <span>{formatNumber(sttBalance)}</span>
+                        <span className="text-sm font-medium text-muted-foreground">STT</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Earned from teleporting ETH
                   </div>
                 </div>
               </motion.div>
