@@ -13,13 +13,13 @@ const TELEPORT_CONFIGS = {
   11155111: { // Ethereum Sepolia
     name: "Ethereum Sepolia",
     symbol: "ETH",
-    lockContract: "0x1227Fa26acd6cDb75E7764C8bfFcB47E26fB63f4",
+    lockContract: "0x1503D79ffE7a7156D8E82875162aA0416D4F7Af8",
     explorerUrl: "https://sepolia.etherscan.io"
   },
   84532: { // Base Sepolia
     name: "Base Sepolia", 
     symbol: "ETH",
-    lockContract: "0xaBd2429cf7BD4F25d0d99FF2057Ef9FDbc1c64F4",
+    lockContract: "0xDDFA8c8f64f63793728FDc9cc4d5698DC469f05d",
     explorerUrl: "https://base-sepolia.blockscout.com"
   },
   300: { // ZkSync Era Sepolia
@@ -49,7 +49,7 @@ const TELEPORT_CONFIGS = {
   11155420: { // Optimism Sepolia
     name: "Optimism Sepolia",
     symbol: "ETH",
-    lockContract: "0x38B0C35Ab49894AC954B137b415Eb256cEC640Df",
+    lockContract: "0xB5A3BA529840fE3bB07526688Aaa100F497C5d97",
     explorerUrl: "https://sepolia-optimism.etherscan.io"
   }
 };
