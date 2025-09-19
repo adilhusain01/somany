@@ -151,7 +151,7 @@ export const useTokenStore = create<TokenStore>()(
         const totalValue = 6470.76; // mainBalancesValue + teleportedAssetsValue
         
         set({ totalPortfolioValue: totalValue });
-        console.log("Updated portfolio value:", totalValue);
+        // console.log("Updated portfolio value:", totalValue);
       },
 
       triggerTeleportRefresh: () => {

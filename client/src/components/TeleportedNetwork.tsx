@@ -119,7 +119,7 @@ const TeleportedNetwork: React.FC<TeleportedNetworkProps> = ({ className }) => {
       return;
     }
     
-    console.log('🔄 TeleportedNetwork: Fetching wETH balance...');
+    // console.log('🔄 TeleportedNetwork: Fetching wETH balance...');
     setWethLoading(true);
     setError(null);
     
@@ -145,7 +145,7 @@ const TeleportedNetwork: React.FC<TeleportedNetworkProps> = ({ className }) => {
       
       // Verify we can connect to Somnia and get the chain ID
       const chainId = await somniaClient.getChainId();
-      console.log('Connected to Somnia chain ID:', chainId);
+      // console.log('Connected to Somnia chain ID:', chainId);
       
       // Fetch wETH balance on Somnia
       const wethBalanceRaw = await somniaClient.readContract({
@@ -158,7 +158,7 @@ const TeleportedNetwork: React.FC<TeleportedNetworkProps> = ({ className }) => {
       const formattedWethBalance = formatEther(wethBalanceRaw);
       setWethBalance(formattedWethBalance);
       
-      console.log('✅ TeleportedNetwork: wETH balance fetched:', formattedWethBalance);
+      // console.log('✅ TeleportedNetwork: wETH balance fetched:', formattedWethBalance);
     } catch (err) {
       console.error('❌ TeleportedNetwork: Error fetching wETH balance:', err);
       setError('Failed to fetch wETH balance');

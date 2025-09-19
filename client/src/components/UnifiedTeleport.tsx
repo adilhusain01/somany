@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { parseEther } from 'viem';
 import { useAccount, useChainId, useWriteContract, useSwitchChain } from 'wagmi';
-import { Zap, Check, Clock, AlertCircle, ChevronRight, Loader2 } from 'lucide-react';
+import { Zap, Check, Clock, AlertCircle, ChevronRight, Loader2, Sparkles } from 'lucide-react';
 import NetworkIcon from './NetworkIcon';
 import { Button } from './ui/button';
 import { Slider } from './ui/slider';
@@ -12,6 +12,8 @@ import { Progress } from './ui/progress';
 import { useTokenBalances } from '../hooks/useTokenBalances';
 import { useTokenStore } from '../store/tokenStore';
 import { useQueryClient } from '@tanstack/react-query';
+import { useSmartAccount } from '../hooks/useSmartAccount';
+import { SmartAccountTeleport } from './SmartAccountTeleport';
 import toast from 'react-hot-toast';
 import { formatTokenAmount, formatCurrency } from '../lib/utils';
 import { debounce as debounceProtection } from '../utils/refreshProtection';
@@ -132,6 +134,9 @@ export const UnifiedTeleport: React.FC<UnifiedTeleportProps> = ({
   const { writeContractAsync } = useWriteContract();
   const { switchChainAsync } = useSwitchChain();
   
+  // Smart Account integration
+  const { isSmartAccount, capabilities } = useSmartAccount();
+  
   // Flag to prevent refreshes during input and manual debounce timer
   const isInputActiveRef = useRef(false);
   const inputDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -141,6 +146,15 @@ export const UnifiedTeleport: React.FC<UnifiedTeleportProps> = ({
   const [chainAmounts, setChainAmounts] = useState<Record<number, { percentage: number; amount: string }>>({});
   const [chainProgress, setChainProgress] = useState<ChainProgress[]>([]);
   const [currentExecutingChain, setCurrentExecutingChain] = useState<number | null>(null);
+  const [preferSmartAccount, setPreferSmartAccount] = useState(true);
+  
+  // Debug logging for smart account detection
+  // console.log('🔍 UnifiedTeleport Debug:', {
+  //   isSmartAccount,
+  //   capabilities,
+  //   preferSmartAccount,
+  //   shouldShowSmartAccount: isSmartAccount && preferSmartAccount
+  // });
   
   // Use ref for execution chain to avoid triggering re-renders during switches
   const executionChainIdRef = useRef<number>(currentChainId);
@@ -623,44 +637,104 @@ export const UnifiedTeleport: React.FC<UnifiedTeleportProps> = ({
             })}
           </div>
 
-          {/* Summary & Action Button - Enhanced Layout */}
+          {/* DEBUG: Smart Account Status (temporary) */}
           {activeTeleports.length > 0 && (
-            <motion.div 
-              className="bg-muted/30 rounded-lg p-4 border"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="flex flex-col lg:flex-row gap-6 items-center">
-                {/* Summary */}
-                <div className="flex-1 grid grid-cols-2 gap-4">
-                  <div className="text-center p-3 rounded-lg bg-background border">
-                    <div className="text-lg font-bold">{activeTeleports.length}</div>
-                    <div className="text-xs text-muted-foreground font-medium">Networks</div>
-                  </div>
-                  <div className="text-center p-3 rounded-lg bg-background border">
-                    <div className="text-lg font-bold">{formatCurrency(totalValue)}</div>
-                    <div className="text-xs text-muted-foreground font-medium">Total Value</div>
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <h4 className="font-medium text-blue-800">Smart Account Debug Info</h4>
+              <div className="text-sm text-blue-700 mt-1">
+                <div>Smart Account Detected: {isSmartAccount ? '✅ Yes' : '❌ No'}</div>
+                <div>Prefer Smart Account: {preferSmartAccount ? '✅ Yes' : '❌ No'}</div>
+                <div>Should Show Button: {(isSmartAccount && preferSmartAccount) ? '✅ Yes' : '❌ No'}</div>
+                <div>Capabilities: {capabilities ? JSON.stringify(capabilities, null, 2) : 'None'}</div>
+              </div>
+            </div>
+          )}
+
+          {/* Summary & Action Buttons */}
+          {activeTeleports.length > 0 && (
+            <>
+              {/* Smart Account Teleport Option */}
+              {(isSmartAccount && preferSmartAccount) && (
+                <div className="mt-6">
+                  <SmartAccountTeleport
+                    chainAmounts={chainAmounts}
+                    totalAmount={totalValue.toFixed(6)}
+                    onTeleportComplete={() => {
+                      triggerTeleportRefresh();
+                      onTeleportComplete?.();
+                      
+                      // Reset amounts
+                      setChainAmounts({});
+                      
+                      // Refresh balances
+                      refetchBalances();
+                      queryClient.invalidateQueries({ queryKey: ['tokenBalances'] });
+                    }}
+                  />
+                  
+                  <div className="mt-4 text-center">
+                    <button
+                      onClick={() => setPreferSmartAccount(false)}
+                      className="text-sm text-muted-foreground hover:text-foreground"
+                    >
+                      Use traditional method instead
+                    </button>
                   </div>
                 </div>
+              )}
 
-                {/* Action Button */}
+              {/* Traditional Teleport Method */}
+              {(!isSmartAccount || !preferSmartAccount) && (
                 <motion.div 
-                  className="w-full lg:w-auto"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  className="bg-muted/30 rounded-lg p-4 border"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
                 >
-                  <Button 
-                    onClick={executeTeleports}
-                    disabled={!isConnected || activeTeleports.length === 0}
-                    className="w-full lg:min-w-[240px] h-12 font-semibold bg-black hover:bg-gray-800 text-white"
-                    size="lg"
-                  >
-                    Start Multi-Chain Teleport
-                  </Button>
+                  <div className="flex flex-col lg:flex-row gap-6 items-center">
+                    {/* Summary */}
+                    <div className="flex-1 grid grid-cols-2 gap-4">
+                      <div className="text-center p-3 rounded-lg bg-background border">
+                        <div className="text-lg font-bold">{activeTeleports.length}</div>
+                        <div className="text-xs text-muted-foreground font-medium">Networks</div>
+                      </div>
+                      <div className="text-center p-3 rounded-lg bg-background border">
+                        <div className="text-lg font-bold">{formatCurrency(totalValue)}</div>
+                        <div className="text-xs text-muted-foreground font-medium">Total Value</div>
+                      </div>
+                    </div>
+
+                    {/* Action Button */}
+                    <motion.div 
+                      className="w-full lg:w-auto"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <Button 
+                        onClick={executeTeleports}
+                        disabled={!isConnected || activeTeleports.length === 0}
+                        className="w-full lg:min-w-[240px] h-12 font-semibold bg-black hover:bg-gray-800 text-white"
+                        size="lg"
+                      >
+                        Start Multi-Chain Teleport
+                      </Button>
+                    </motion.div>
+                  </div>
+                  
+                  {isSmartAccount && (
+                    <div className="mt-4 text-center">
+                      <button
+                        onClick={() => setPreferSmartAccount(true)}
+                        className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1 mx-auto"
+                      >
+                        <Sparkles className="h-3 w-3" />
+                        Use Smart Account instead (single signature)
+                      </button>
+                    </div>
+                  )}
                 </motion.div>
-              </div>
-            </motion.div>
+              )}
+            </>
           )}
 
           {/* Show button alone if no active teleports */}

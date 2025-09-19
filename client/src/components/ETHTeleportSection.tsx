@@ -98,13 +98,13 @@ const ETHTeleportSectionComponent: React.FC<ETHTeleportSectionProps> = ({
       const usdValue = balance.value || 0;
       
       // Log individual values for debugging
-      console.log(`Chain ${balance.chainName}: ${ethAmount} ETH @ ${balance.price || 0} USD = $${usdValue}`);
+      // console.log(`Chain ${balance.chainName}: ${ethAmount} ETH @ ${balance.price || 0} USD = $${usdValue}`);
       
       ethTotal += ethAmount;
       valueTotal += usdValue;
     });
     
-    console.log(`Total across all chains: ${ethTotal} ETH = $${valueTotal}`);
+    // console.log(`Total across all chains: ${ethTotal} ETH = $${valueTotal}`);
     
     return [ethTotal, valueTotal];
   }, [teleportableBalances]);

@@ -1,0 +1,29 @@
+{
+  "name": "smart-account-bundler",
+  "version": "1.0.0",
+  "description": "Smart Account Bundler Service for Cross-Chain Teleportation",
+  "main": "api.js",
+  "scripts": {
+    "start": "node api.js",
+    "dev": "nodemon api.js",
+    "test-bundler": "node bundler.js"
+  },
+  "dependencies": {
+    "ethers": "^6.8.0",
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": [
+    "ethereum",
+    "smart-account",
+    "bundler",
+    "cross-chain",
+    "teleportation"
+  ],
+  "author": "Somany Team",
+  "license": "MIT"
+}
