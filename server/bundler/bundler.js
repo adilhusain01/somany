@@ -118,36 +118,32 @@ class SmartAccountBundler {
 
     const results = [];
 
-    // Execute on each chain in parallel
-    const executionPromises = Object.entries(chainAmounts).map(async ([chainIdStr, { amount }]) => {
+    // Execute on each chain SEQUENTIALLY to avoid nonce conflicts
+    // Since we use the same private key across chains, parallel execution causes nonce issues
+    console.log(`🔄 Executing batch transactions sequentially to prevent nonce conflicts...`);
+    
+    for (const [chainIdStr, { amount }] of Object.entries(chainAmounts)) {
       const chainId = Number(chainIdStr);
       const chain = SUPPORTED_CHAINS.find(c => c.chainId === chainId);
       
       if (!chain || parseFloat(amount) <= 0) {
-        return { chainId, status: 'skipped', reason: 'Invalid amount or chain' };
+        results.push({ chainId, status: 'skipped', reason: 'Invalid amount or chain' });
+        continue;
       }
 
       try {
-        return await this.executeBatchOnChain(chainId, userAddress, amount, chain);
+        console.log(`🎯 Processing chain ${chainId} (${chain.name}) with amount ${amount} ETH`);
+        const result = await this.executeBatchOnChain(chainId, userAddress, amount, chain);
+        results.push(result);
+        
+        // Small delay between chains to ensure nonce ordering
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
       } catch (error) {
         console.error(`❌ Chain ${chainId}: Batch execution failed:`, error.message);
-        return { chainId, status: 'failed', error: error.message };
+        results.push({ chainId, status: 'failed', error: error.message });
       }
-    });
-
-    const executionResults = await Promise.allSettled(executionPromises);
-    
-    executionResults.forEach((result, index) => {
-      if (result.status === 'fulfilled') {
-        results.push(result.value);
-      } else {
-        results.push({ 
-          chainId: Object.keys(chainAmounts)[index], 
-          status: 'failed', 
-          error: result.reason?.message || 'Unknown error' 
-        });
-      }
-    });
+    }
 
     return {
       success: results.some(r => r.status === 'success'),
@@ -167,6 +163,10 @@ class SmartAccountBundler {
     }
 
     console.log(`🎯 ${chain.name}: Executing batch for ${amount} ETH`);
+
+    // Get current nonce to avoid conflicts
+    const currentNonce = await provider.getTransactionCount(wallet.address, 'pending');
+    console.log(`🔢 ${chain.name}: Using nonce ${currentNonce} for wallet ${wallet.address}`);
 
     // Create batch call for the lock contract
     const lockCallData = ethers.Interface.from(lockAbi).encodeFunctionData('lock', []);
@@ -191,10 +191,11 @@ class SmartAccountBundler {
     
     const tx = await batchExecutorContract.executeBatch([batchCall], {
       value: ethers.parseEther(cleanAmount),
-      gasLimit: 300000 // Conservative gas limit
+      gasLimit: 300000, // Conservative gas limit
+      nonce: currentNonce // Explicitly set nonce to prevent conflicts
     });
 
-    console.log(`📤 ${chain.name}: Batch transaction sent: ${tx.hash}`);
+    console.log(`📤 ${chain.name}: Batch transaction sent: ${tx.hash} (nonce: ${currentNonce})`);
     
     const receipt = await tx.wait();
     
