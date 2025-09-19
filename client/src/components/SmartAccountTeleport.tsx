@@ -230,46 +230,17 @@ export const SmartAccountTeleport: React.FC<SmartAccountTeleportProps> = ({
           }
         }
       } catch (bundlerError: any) {
-        console.log('📝 Bundler unavailable, using direct execution:', bundlerError.message);
+        console.log('📝 Bundler unavailable:', bundlerError.message);
+        toast.error('Bundler service unavailable. Please start the bundler service first.', {
+          id: 'smart-teleport'
+        });
+        return;
       }
 
-      // Fallback to direct execution (Phase 1 implementation)
-      toast.loading('Sign the batch transaction in MetaMask...', {
+      // If we reach here, bundler was available but returned error
+      toast.error('Bundler processing failed. Please try again.', {
         id: 'smart-teleport'
       });
-
-      // Create batch calls for direct execution
-      const batchCalls = createBatchCalls();
-      const totalValue = batchCalls.reduce((sum, call) => sum + call.value, BigInt(0));
-
-      // Use current chain's BatchExecutor - fallback to first available
-      const currentChainId = chainId || 11155111;
-      const batchExecutorAddress = BATCH_EXECUTOR_ADDRESSES[currentChainId] || BATCH_EXECUTOR_ADDRESSES[11155111];
-
-      console.log(`🎯 Smart Account: Using BatchExecutor on chain ${currentChainId}:`, batchExecutorAddress);
-
-      // Execute batch through deployed BatchExecutor
-      const txHash = await writeContractAsync({
-        address: batchExecutorAddress as `0x${string}`,
-        abi: batchExecutorAbi,
-        functionName: 'executeBatch',
-        args: [batchCalls],
-        value: totalValue
-      });
-
-      console.log('✅ Smart Account: Direct batch transaction sent:', txHash);
-      
-      setBatchStatus('confirming');
-      toast.loading('Confirming batch transaction...', {
-        id: 'smart-teleport'
-      });
-
-      setBatchStatus('completed');
-      toast.success('🚀 Smart Account batch teleport completed!', {
-        id: 'smart-teleport'
-      });
-
-      onTeleportComplete?.();
 
     } catch (err: any) {
       console.error('❌ Smart Account: Batch teleport failed:', err);
