@@ -1,45 +1,73 @@
-import { ConnectButton } from '@rainbow-me/rainbowkit';
-import type { NextPage } from 'next';
-import Head from 'next/head';
-import { motion } from 'framer-motion';
-import TokenBalances from '../components/TokenBalances';
-import dynamic from 'next/dynamic';
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+import type { NextPage } from "next";
+import Head from "next/head";
+import { motion } from "framer-motion";
+import TokenBalances from "../components/TokenBalances";
+import dynamic from "next/dynamic";
 
 // Dynamically import the 3D component to avoid SSR issues
 const FunnelVisualization = dynamic(
-  () => import('../components/FunnelVisualization'),
-  { ssr: false }
+  () => import("../components/FunnelVisualization"),
+  { ssr: false },
 );
 
 const Home: NextPage = () => {
+  const pageTitle = "SoMany - Multi-Chain Token Aggregation Protocol";
+  const pageDescription =
+    "Aggregate ETH across multiple blockchain networks into wETH on Somnia";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
+  const pageUrl = siteUrl ? `${siteUrl}/` : undefined;
+  const ogImageUrl = siteUrl ? `${siteUrl}/somany-og.webp` : "/somany-og.webp";
+
   return (
     <div className="min-h-screen flex flex-col">
       <Head>
-        <title>SoMany - Multi-Chain Token Aggregation Protocol</title>
+        <title>{pageTitle}</title>
+        <meta content={pageDescription} name="description" />
+        {pageUrl ? <link href={pageUrl} rel="canonical" /> : null}
+
+        <meta content="website" property="og:type" />
+        <meta content="SoMany" property="og:site_name" />
+        <meta content={pageTitle} property="og:title" />
+        <meta content={pageDescription} property="og:description" />
+        {pageUrl ? <meta content={pageUrl} property="og:url" /> : null}
+        <meta content={ogImageUrl} property="og:image" />
+        <meta content={ogImageUrl} property="og:image:secure_url" />
+        <meta content="image/webp" property="og:image:type" />
+        <meta content="1200" property="og:image:width" />
+        <meta content="630" property="og:image:height" />
         <meta
-          content="Aggregate ETH across multiple blockchain networks into wETH on Somnia"
-          name="description"
+          content="SoMany multi-chain token aggregation preview"
+          property="og:image:alt"
         />
-        <link href="/favicon.ico" rel="icon" />
+
+        <meta content="summary_large_image" name="twitter:card" />
+        <meta content={pageTitle} name="twitter:title" />
+        <meta content={pageDescription} name="twitter:description" />
+        <meta content={ogImageUrl} name="twitter:image" />
+        <meta
+          content="SoMany multi-chain token aggregation preview"
+          name="twitter:image:alt"
+        />
       </Head>
 
       <main className="container mx-auto px-4 py-8 flex-1">
         {/* Header */}
-        <motion.div 
+        <motion.div
           className="flex flex-col sm:flex-row items-center justify-between mb-8"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-            <motion.div
-              className="text-3xl font-bold text-black tracking-tight"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-            >
-              so.many
-            </motion.div>
-          
+          <motion.div
+            className="text-3xl font-bold text-black tracking-tight"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
+            so.many
+          </motion.div>
+
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -50,7 +78,7 @@ const Home: NextPage = () => {
         </motion.div>
 
         {/* Hero Section */}
-        <motion.div 
+        <motion.div
           className="mb-16 max-w-7xl mx-auto"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -58,13 +86,13 @@ const Home: NextPage = () => {
         >
           <div className="grid lg:grid-cols-2 gap-0 items-center min-h-[500px]">
             {/* Text Content - Left Side */}
-            <motion.div 
+            <motion.div
               className="text-left space-y-6 lg:space-y-8 flex flex-col justify-center"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8, delay: 0.5 }}
             >
-              <motion.h2 
+              <motion.h2
                 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -78,19 +106,22 @@ const Home: NextPage = () => {
                   into Pure Value
                 </span>
               </motion.h2>
-              
-              <motion.p 
+
+              <motion.p
                 className="text-lg lg:text-xl text-muted-foreground leading-relaxed max-w-lg"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.9 }}
               >
-                Channel scattered tokens from{' '}
-                <span className="font-semibold text-foreground">multiple blockchain networks</span>{' '}
-                through our intelligent funnel system. Transform countless small balances into concentrated{' '}
+                Channel scattered tokens from{" "}
+                <span className="font-semibold text-foreground">
+                  multiple blockchain networks
+                </span>{" "}
+                through our intelligent funnel system. Transform countless small
+                balances into concentrated{" "}
                 <span className="font-semibold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
                   wETH on Somnia
-                </span>{' '}
+                </span>{" "}
                 with seamless multi-chain aggregation.
               </motion.p>
 
@@ -121,13 +152,13 @@ const Home: NextPage = () => {
               className="h-[400px] lg:h-[500px] w-full flex items-center justify-center"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ 
+              transition={{
                 duration: 1.2,
                 delay: 0.5,
-                ease: "easeOut"
+                ease: "easeOut",
               }}
             >
-                <FunnelVisualization />
+              <FunnelVisualization />
             </motion.div>
           </div>
         </motion.div>
@@ -137,38 +168,39 @@ const Home: NextPage = () => {
       </main>
 
       {/* Footer */}
-      <motion.footer 
+      <motion.footer
         className="border-t mt-16 py-8"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6, delay: 1 }}
       >
         <div className="container mx-auto px-4 text-center">
-          <motion.div 
+          <motion.div
             className="flex items-center justify-center py-4 gap-3"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1, duration: 0.5 }}
           >
-            <span className="text-slate-400 text-xs font-medium">{"Build with <3! by"}</span>
+            <span className="text-slate-400 text-xs font-medium">
+              {"Build with <3! by"}
+            </span>
             <div className="flex items-center gap-2">
-
               <motion.a
                 href="https://x.com/0xrizzmo"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group relative"
                 initial={{ opacity: 0, scale: 0, rotate: 0, y: 0 }}
-                animate={{ 
-                  opacity: 1, 
+                animate={{
+                  opacity: 1,
                   scale: 1,
-                  transition: { delay: 1.3, duration: 0.3, type: "spring" }
+                  transition: { delay: 1.3, duration: 0.3, type: "spring" },
                 }}
-                whileHover={{ 
-                  scale: 1.15, 
-                  rotate: 15, 
+                whileHover={{
+                  scale: 1.15,
+                  rotate: 15,
                   y: -2,
-                  transition: { duration: 0.3, ease: "easeOut" }
+                  transition: { duration: 0.3, ease: "easeOut" },
                 }}
                 whileTap={{ scale: 0.95 }}
                 transition={{ duration: 0.3, ease: "easeOut" }}
@@ -179,7 +211,8 @@ const Home: NextPage = () => {
                     alt="Friend's Twitter"
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = "https://pbs.twimg.com/profile_images/1934881304996446208/eyNP67zO_400x400.jpg"
+                      (e.target as HTMLImageElement).src =
+                        "https://pbs.twimg.com/profile_images/1934881304996446208/eyNP67zO_400x400.jpg";
                     }}
                   />
                 </div>
@@ -188,22 +221,22 @@ const Home: NextPage = () => {
                 </div>
               </motion.a>
 
-                            <motion.a
+              <motion.a
                 href="https://x.com/0xAdilHusain"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group relative"
                 initial={{ opacity: 0, scale: 0, rotate: 0, y: 0 }}
-                animate={{ 
-                  opacity: 1, 
+                animate={{
+                  opacity: 1,
                   scale: 1,
-                  transition: { delay: 1.2, duration: 0.3, type: "spring" }
+                  transition: { delay: 1.2, duration: 0.3, type: "spring" },
                 }}
-                whileHover={{ 
-                  scale: 1.15, 
-                  rotate: 15, 
+                whileHover={{
+                  scale: 1.15,
+                  rotate: 15,
                   y: -2,
-                  transition: { duration: 0.3, ease: "easeOut" }
+                  transition: { duration: 0.3, ease: "easeOut" },
                 }}
                 whileTap={{ scale: 0.95 }}
                 transition={{ duration: 0.3, ease: "easeOut" }}
@@ -214,7 +247,8 @@ const Home: NextPage = () => {
                     alt="Adil's Twitter"
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = "https://pbs.twimg.com/profile_images/1947715281520103424/riYRziYF_400x400.jpg"
+                      (e.target as HTMLImageElement).src =
+                        "https://pbs.twimg.com/profile_images/1947715281520103424/riYRziYF_400x400.jpg";
                     }}
                   />
                 </div>

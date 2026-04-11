@@ -1,14 +1,15 @@
-import '../styles/globals.css';
-import '@rainbow-me/rainbowkit/styles.css';
-import type { AppProps } from 'next/app';
+import "../styles/globals.css";
+import "@rainbow-me/rainbowkit/styles.css";
+import type { AppProps } from "next/app";
+import Head from "next/head";
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { WagmiProvider } from 'wagmi';
-import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
-import { Toaster } from 'react-hot-toast';
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { WagmiProvider } from "wagmi";
+import { RainbowKitProvider } from "@rainbow-me/rainbowkit";
+import { Toaster } from "react-hot-toast";
 
-import { config } from '../wagmi';
+import { config } from "../wagmi";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -21,24 +22,32 @@ const queryClient = new QueryClient({
 
 function MyApp({ Component, pageProps }: AppProps) {
   return (
-    <WagmiProvider config={config}>
-      <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider>
-          <Component {...pageProps} />
-          <Toaster 
-            position="bottom-right"
-            toastOptions={{
-              style: {
-                background: 'hsl(var(--card))',
-                color: 'hsl(var(--card-foreground))',
-                border: '1px solid hsl(var(--border))',
-              },
-            }}
-          />
-          <ReactQueryDevtools initialIsOpen={false} />
-        </RainbowKitProvider>
-      </QueryClientProvider>
-    </WagmiProvider>
+    <>
+      <Head>
+        <link href="/favicon.ico" rel="icon" />
+        <link href="/favicon.ico" rel="shortcut icon" />
+        <meta content="#0f172a" name="theme-color" />
+      </Head>
+
+      <WagmiProvider config={config}>
+        <QueryClientProvider client={queryClient}>
+          <RainbowKitProvider>
+            <Component {...pageProps} />
+            <Toaster
+              position="bottom-right"
+              toastOptions={{
+                style: {
+                  background: "hsl(var(--card))",
+                  color: "hsl(var(--card-foreground))",
+                  border: "1px solid hsl(var(--border))",
+                },
+              }}
+            />
+            <ReactQueryDevtools initialIsOpen={false} />
+          </RainbowKitProvider>
+        </QueryClientProvider>
+      </WagmiProvider>
+    </>
   );
 }
 
